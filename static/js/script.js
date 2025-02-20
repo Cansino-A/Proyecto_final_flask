@@ -1,1 +1,1 @@
-console.log('Flask project loaded!');
+console.log('Plataforma de seguimiento cargada');

@@ -21,6 +21,7 @@
 # ```sh
 # python app.py
 # ```
+# & C:/Users/dcanto1/AppData/Local/Programs/Python/Python312/python.exe "c:/Users/dcanto1/Desktop/INFOT/Fundamentos de la Programación/Proyecto_final_flask/app.py"
 # ? Luego, abre en tu navegador: `http://127.0.0.1:5000/`
 
 

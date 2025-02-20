@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Agregar Juego{% endblock %}
+
+{% block content %}
+<h1 class="text-center">Agregar Nuevo Juego</h1>
+<form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.title.label(class="form-label") }}
+        {{ form.title(class="form-control") }}
+        {% for error in form.title.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        {{ form.progress.label(class="form-label") }}
+        {{ form.progress(class="form-control", step="1", min="0", max="100") }}
+        {% for error in form.progress.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        {{ form.notes.label(class="form-label") }}
+        {{ form.notes(class="form-control") }}
+    </div>
+    <button type="submit" class="btn btn-success">Guardar</button>
+</form>
+{% endblock %}

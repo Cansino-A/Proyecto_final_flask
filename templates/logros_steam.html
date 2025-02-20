@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Consulta de Logros Steam{% endblock %}
+
+{% block content %}
+<h2 class="text-center">Consultar Logros en Steam</h2>
+<form method="POST" class="mb-4">
+    <div class="mb-3">
+        <label for="steam_id" class="form-label">Steam ID del usuario:</label>
+        <input type="text" name="steam_id" id="steam_id" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label for="app_id" class="form-label">App ID del juego:</label>
+        <input type="text" name="app_id" id="app_id" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Consultar Logros</button>
+</form>
+
+{% if achievements %}
+<h3>Logros obtenidos:</h3>
+<ul class="list-group">
+    {% for achievement in achievements %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ achievement.apiname }}
+            {% if achievement.achieved == 1 %}
+                <span class="badge bg-success">Obtenido</span>
+            {% else %}
+                <span class="badge bg-secondary">No obtenido</span>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
