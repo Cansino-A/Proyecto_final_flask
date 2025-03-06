@@ -1,13 +1,17 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DecimalField, TextAreaField, SubmitField
-from wtforms.validators import InputRequired, NumberRange
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Length, EqualTo
 
-# 📝 Formulario para agregar un nuevo juego
-class GameForm(FlaskForm):
-    title = StringField('Título del juego', validators=[InputRequired(message="El título es obligatorio.")])
-    progress = DecimalField('Progreso (%)', validators=[
-        InputRequired(message="El progreso es obligatorio."),
-        NumberRange(min=0, max=100, message="El progreso debe estar entre 0 y 100.")
-    ])
-    notes = TextAreaField('Notas')  # Campo opcional para notas
-    submit = SubmitField('Guardar')  # Botón de envío
+# 📌 Formulario de registro
+class RegistrationForm(FlaskForm):
+    username = StringField('Nombre de usuario', validators=[DataRequired(), Length(min=4, max=25)])
+    steam_id = StringField('Steam ID', validators=[DataRequired()])  # Campo steam_id agregado
+    password = PasswordField('Contraseña', validators=[DataRequired(), Length(min=6)])  # Longitud mínima de 6
+    confirm_password = PasswordField('Confirmar Contraseña', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Registrar')
+
+# 🔑 Formulario de inicio de sesión
+class LoginForm(FlaskForm):
+    username = StringField('Nombre de usuario', validators=[DataRequired()])
+    password = PasswordField('Contraseña', validators=[DataRequired()])
+    submit = SubmitField('Iniciar Sesión')

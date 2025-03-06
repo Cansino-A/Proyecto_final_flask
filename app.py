@@ -1,87 +1,201 @@
 import requests
-from flask import Flask, render_template, request, redirect, url_for, flash
-from models import db, Game
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from forms import GameForm
-from models import db, Game
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from datetime import datetime, timedelta
+from models import db
+from models.user import User
+from models.game import Game
+from models.achievement import Achievement
+from forms import RegistrationForm, LoginForm
+import os
 
-# 📝 Configuración de la aplicación Flask y la base de datos
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///games.db'
-app.config['SECRET_KEY'] = 'your_secret_key'
-
-db.init_app(app)  # Vincula la base de datos a la app
-
-# 🔑 Reemplaza con tu API Key de Steam
+# 🔑 Clave API de Steam (REEMPLAZA POR TU CLAVE REAL)
 STEAM_API_KEY = "C89BEF3321862C5B2AA16A35B9BFC5C0"
 
-# 🏠 Ruta principal: muestra la lista de juegos registrados
+# 📌 Configuración de Flask
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'  # Agrega esta línea
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'games.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+
+# Inicializa la base de datos
+db.init_app(app)
+
+# 🔐 Configuración del LoginManager
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# 🚀 FUNCIONES PARA CARGAR JUEGOS Y LOGROS
+def fetch_and_store_games(user):
+    """Descarga y almacena los juegos de un usuario de Steam."""
+    url = f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={STEAM_API_KEY}&steamid={user.steam_id}&include_appinfo=true&include_played_free_games=true"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        if "response" in data and "games" in data["response"]:
+            for game in data["response"]["games"]:
+                existing_game = Game.query.filter_by(appid=game["appid"], user_id=user.id).first()
+
+                if not existing_game:
+                    new_game = Game(
+                        appid=game["appid"],
+                        name=game.get("name", "Juego Desconocido"),
+                        playtime=game.get("playtime_forever", 0) // 60,
+                        image=f"https://cdn.cloudflare.steamstatic.com/steam/apps/{game['appid']}/capsule_184x69.jpg",
+                        user_id=user.id
+                    )
+                    db.session.add(new_game)
+                    db.session.commit()
+                    fetch_and_store_achievements(new_game, user)
+
+    user.last_updated = datetime.utcnow()
+    db.session.commit()
+
+def fetch_and_store_achievements(game, user):
+    """Descarga y almacena los logros de un juego de Steam."""
+    achievements_url = f"https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={STEAM_API_KEY}&steamid={user.steam_id}&appid={game.appid}"
+    achievements_response = requests.get(achievements_url)
+
+    if achievements_response.status_code == 200:
+        achievements_data = achievements_response.json()
+        if "playerstats" in achievements_data and "achievements" in achievements_data["playerstats"]:
+            for ach in achievements_data["playerstats"]["achievements"]:
+                existing_achievement = Achievement.query.filter_by(game_id=game.id, name=ach.get("name")).first()
+                
+                if not existing_achievement:
+                    achievement = Achievement(
+                        game_id=game.id,
+                        name=ach.get("name", "Logro Desconocido"),
+                        description=ach.get("description", "Sin descripción"),
+                        achieved=ach.get("achieved", 0) == 1
+                    )
+                    db.session.add(achievement)
+    db.session.commit()
+
+# 🌍 RUTAS DE LA APLICACIÓN
 @app.route('/')
 def index():
-    games = Game.query.all()  # Consulta todos los juegos de la base de datos
-    return render_template('index.html', games=games)  # Renderiza la plantilla con la lista de juegos
+    return redirect(url_for('login'))  # Redirige a la página de inicio de sesión
 
-# ➕ Ruta para agregar un nuevo juego con un formulario
-@app.route('/add', methods=['GET', 'POST'])
-def add_game():
-    form = GameForm()
-    if form.validate_on_submit():  # Verifica que el formulario se haya enviado correctamente
-        new_game = Game(
-            title=form.title.data,
-            progress=form.progress.data or 0,  # Asegura que si es None se guarde como 0
-            notes=form.notes.data
-        )
-        db.session.add(new_game)  # Agrega el juego a la base de datos
-        db.session.commit()  # Guarda los cambios
-        flash('¡Juego agregado con éxito!', 'success')  # Mensaje de confirmación
-        return redirect(url_for('index'))  # Redirige a la página principal
-    return render_template('add_game.html', form=form)  # Muestra el formulario de agregar juego
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # Verifica si el usuario ya existe
+        existing_user = User.query.filter_by(username=form.username.data).first()
+        if existing_user:
+            flash('El nombre de usuario ya está en uso.', 'warning')
+            return redirect(url_for('register'))
 
-# 📄 Ruta para ver los detalles de un juego específico
-@app.route('/game/<int:game_id>')
-def game_detail(game_id):
-    game = Game.query.get_or_404(game_id)  # Obtiene el juego por ID o muestra un error 404
-    return render_template('game_detail.html', game=game)  # Renderiza la página de detalles
+        # Crea un nuevo usuario
+        user = User(username=form.username.data, steam_id=form.steam_id.data)
+        user.set_password(form.password.data)  # 🔑 Encripta la contraseña
+        db.session.add(user)
+        db.session.commit()
 
-# 🗑️ Ruta para eliminar un juego (colócala antes del if __name__ == '__main__')
-@app.route('/delete/<int:game_id>', methods=['POST'])
-def delete_game(game_id):
-    game = Game.query.get_or_404(game_id)  # Busca el juego o lanza un 404 si no existe
-    db.session.delete(game)  # Elimina el juego
-    db.session.commit()  # Guarda los cambios
-    flash(f'Juego \"{game.title}\" eliminado con éxito.', 'success')  # Mensaje de éxito
-    return redirect(url_for('index'))  # Redirige a la lista de juegos
+        fetch_and_store_games(user)  # 🔄 Descargar juegos y logros al registrar
 
-# 🏆 Ruta para consultar logros de un juego en Steam
-@app.route('/steam/logros', methods=['GET', 'POST'])
-def logros_steam():
-    achievements = None
-    if request.method == 'POST':
-        steam_id = request.form.get('steam_id')
-        app_id = request.form.get('app_id')
+        flash('Cuenta creada con éxito. Ahora puedes iniciar sesión.', 'success')
+        return redirect(url_for('login'))
+    else:
+        # Muestra errores en el formulario
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Error en el campo {field}: {error}", 'danger')
 
-        if not steam_id or not app_id:
-            flash('Debes proporcionar el Steam ID y el App ID del juego.', 'warning')
-            return redirect(url_for('logros_steam'))
+    return render_template('register.html', form=form)
 
-        # 📥 Petición a la API de Steam
-        url = f"https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={STEAM_API_KEY}&steamid={steam_id}&appid={app_id}"
-        response = requests.get(url)
-
-        if response.status_code == 200:
-            data = response.json()
-            if "playerstats" in data and "achievements" in data["playerstats"]:
-                achievements = data["playerstats"]["achievements"]
-                flash('Logros obtenidos correctamente.', 'success')
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user:
+            print(f"Usuario encontrado: {user.username}")  # Depuración
+            if user.check_password(form.password.data):
+                print("Contraseña correcta")  # Depuración
+                login_user(user)
+                flash('Inicio de sesión exitoso.', 'success')
+                return redirect(url_for('dashboard'))
             else:
-                flash('No se encontraron logros para este usuario o juego.', 'danger')
+                print("Contraseña incorrecta")  # Depuración
+                flash('Usuario o contraseña incorrectos.', 'danger')
         else:
-            flash('Error al consultar la API de Steam.', 'danger')
+            print("Usuario no encontrado")  # Depuración
+            flash('Usuario o contraseña incorrectos.', 'danger')
+    return render_template('login.html', form=form)
 
-    return render_template('logros_steam.html', achievements=achievements)
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Sesión cerrada.', 'info')
+    return redirect(url_for('login'))
 
-# 🚀 Ejecuta la app y crea la base de datos
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """Muestra el dashboard y actualiza los juegos/logros si es necesario."""
+    if current_user.last_updated is None or (datetime.utcnow() - current_user.last_updated) > timedelta(hours=24):
+        fetch_and_store_games(current_user)  # 🔄 Actualizar si pasaron más de 24 horas
+
+    games = Game.query.filter_by(user_id=current_user.id).all()
+    return render_template('dashboard.html', games=games)
+
+# 📂 API PARA CARGA ASINCRÓNICA DE JUEGOS Y LOGROS
+@app.route('/api/games')
+@login_required
+def api_games():
+    """API para obtener juegos paginados."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    games_query = Game.query.filter_by(user_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
+
+    games = [
+        {
+            "appid": game.appid,
+            "name": game.name,
+            "playtime": game.playtime,
+            "image": game.image,
+            "achieved_count": Achievement.query.filter_by(game_id=game.id, achieved=True).count()
+        } for game in games_query.items
+    ]
+
+    return jsonify({
+        "games": games,
+        "total_pages": games_query.pages,
+        "current_page": page
+    })
+
+@app.route('/api/achievements/<int:appid>')
+@login_required
+def api_achievements(appid):
+    """API para obtener logros de un juego específico."""
+    game = Game.query.filter_by(appid=appid, user_id=current_user.id).first()
+    if not game:
+        return jsonify({"error": "Juego no encontrado"}), 404
+
+    achievements = Achievement.query.filter_by(game_id=game.id, achieved=True).all()
+
+    return jsonify({
+        "achievements": [
+            {"name": ach.name, "description": ach.description} for ach in achievements
+        ]
+    })
+
+# 🚀 EJECUTAR APP Y CREAR BD
+with app.app_context():
+    db.create_all()  # 🔥 Aquí se crean las tablas
+    print("✅ Base de datos creada correctamente.")
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Crea las tablas si no existen
-    app.run(debug=True)  # Inicia el servidor
+    app.run(debug=True)

@@ -1,11 +1,10 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, TextAreaField, SubmitField
-from wtforms.validators import DataRequired, NumberRange
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Length, EqualTo
 
-class GameForm(FlaskForm):
-    title = StringField('Título del juego', validators=[DataRequired(message="El título es obligatorio.")])
-    progress = IntegerField('Progreso (%)', validators=[
-        NumberRange(min=-1, max=100, message="El progreso debe estar entre 0 y 100.")
-    ])
-    notes = TextAreaField('Notas')
-    submit = SubmitField('Guardar')
+class RegistrationForm(FlaskForm):
+    username = StringField('Nombre de usuario', validators=[DataRequired(), Length(min=4, max=25)])
+    steam_id = StringField('Steam ID', validators=[DataRequired()])  # Campo steam_id agregado
+    password = PasswordField('Contraseña', validators=[DataRequired(), Length(min=6)])  # Longitud mínima de 6
+    confirm_password = PasswordField('Confirmar Contraseña', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Registrar')
