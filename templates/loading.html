@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Cargando Juegos{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <h2>Cargando tu biblioteca de Steam...</h2>
+    <p>Esto puede tardar unos segundos, por favor espera.</p>
+
+    <!-- 🔄 Animación de carga -->
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+
+    <!-- 📊 Barra de progreso -->
+    <div class="progress mt-4" style="height: 20px;">
+        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 0%;">
+            0%
+        </div>
+    </div>
+
+    <p class="mt-3" id="status-message">Obteniendo datos de Steam...</p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let progress = 0;
+    const progressBar = document.getElementById("progress-bar");
+    const statusMessage = document.getElementById("status-message");
+    const userId = "{{ user_id }}";  // Obtenemos el ID del usuario registrado
+
+    function updateProgress(value, message) {
+        progress = value;
+        progressBar.style.width = progress + "%";
+        progressBar.innerText = progress + "%";
+        statusMessage.innerText = message;
+    }
+
+    // Simulación de progreso inicial
+    let simulatedProgress = 0;
+    let progressInterval = setInterval(() => {
+        if (simulatedProgress < 90) {
+            simulatedProgress += 10;
+            updateProgress(simulatedProgress, "Cargando juegos...");
+        } else {
+            clearInterval(progressInterval);
+        }
+    }, 1000);
+
+    // Llama a la API para iniciar la descarga de juegos
+    fetch(`/api/fetch_games?user_id=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                checkGamesLoaded();
+            } else {
+                statusMessage.innerText = "Error al cargar juegos.";
+            }
+        });
+
+    // Verifica cada 2 segundos si los juegos ya están disponibles
+    function checkGamesLoaded() {
+        fetch("/api/games?page=1")
+            .then(response => response.json())
+            .then(data => {
+                if (data.games.length > 0) {
+                    updateProgress(100, "Carga completada. Redirigiendo...");
+                    setTimeout(() => {
+                        window.location.href = "/dashboard";  
+                    }, 1000);
+                } else {
+                    setTimeout(checkGamesLoaded, 2000);
+                }
+            })
+            .catch(error => {
+                console.error("Error verificando juegos:", error);
+                statusMessage.innerText = "Error al cargar. Reintentando...";
+                setTimeout(checkGamesLoaded, 3000);
+            });
+    }
+});
+</script>
+
+{% endblock %}

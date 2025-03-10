@@ -4,7 +4,7 @@ from app import app
 # Ejecutar dentro del contexto de la aplicación
 with app.app_context():
     print("🔄 Eliminando y recreando la base de datos...")
-    db.drop_all()  # Elimina todas las tablas existentes
+    #db.drop_all()  # Elimina todas las tablas existentes
     db.create_all()  # Crea todas las tablas desde cero
 
     # Comprobar si las tablas se han creado
