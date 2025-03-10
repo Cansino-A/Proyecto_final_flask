@@ -22,6 +22,10 @@ app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'games.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_COOKIE_NAME'] = 'my_session'
+app.config['SESSION_PERMANENT'] = False
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+
 
 # Inicializa la base de datos
 db.init_app(app)
@@ -98,6 +102,8 @@ def index():
 
 from threading import Thread
 
+from flask_login import login_user
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm()
@@ -107,16 +113,20 @@ def register():
             flash('El nombre de usuario ya está en uso.', 'warning')
             return redirect(url_for('register'))
 
-        # Crea el usuario
+        # Crear nuevo usuario
         user = User(username=form.username.data, steam_id=form.steam_id.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
 
-        # ⏳ Redirige a la pantalla de carga
-        return redirect(url_for('loading', user_id=user.id))  
+        # 🔥 Iniciar sesión automáticamente después de registrarse
+        login_user(user, remember=True)  # ⬅ Esto evita que la sesión se pierda
+
+        flash('Cuenta creada con éxito. Redirigiendo a tu biblioteca...', 'success')
+        return redirect(url_for('loading', user_id=user.id))  # Redirigir a la pantalla de carga
 
     return render_template('register.html', form=form)
+
 
 
 
@@ -162,18 +172,18 @@ def logout():
     flash('Sesión cerrada.', 'info')
     return redirect(url_for('login'))
 
+from flask import jsonify, request
+from flask_login import current_user
+
 @app.route('/api/games')
-@login_required
 def api_games():
     """API para obtener juegos paginados."""
+    if not current_user.is_authenticated:
+        return jsonify({"error": "Usuario no autenticado"}), 401  # ⬅ Evita la redirección al login
+
     page = request.args.get('page', 1, type=int)
     per_page = 10
-
-    # 🔍 Depuración: Verificar si hay juegos en la BD
     games_query = Game.query.filter_by(user_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
-
-    if not games_query.items:
-        print("🚨 No hay juegos en la base de datos para este usuario en la API.")
 
     games = [
         {
@@ -185,15 +195,12 @@ def api_games():
         } for game in games_query.items
     ]
 
-    response = {
+    return jsonify({
         "games": games,
         "total_pages": games_query.pages,
         "current_page": page
-    }
+    })
 
-    print(f"✅ API devuelve {len(games)} juegos en la página {page}")
-
-    return jsonify(response)
 
 @app.route('/api/achievements/<int:appid>')
 @login_required
@@ -222,14 +229,15 @@ def fetch_games():
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
-    # 🔄 Ejecutar en un hilo separado para no bloquear la carga
     def fetch_data():
-        fetch_and_store_games(user)
+        with app.app_context():  # 👈 Asegura el contexto de la app
+            fetch_and_store_games(user)
 
     thread = Thread(target=fetch_data)
     thread.start()
 
     return jsonify({"success": True})
+
 
 
 # 🚀 EJECUTAR APP Y CREAR BD
