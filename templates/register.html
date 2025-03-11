@@ -2,28 +2,37 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2>Registro</h2>
-    <form method="POST">
-        {{ form.hidden_tag() }}
-    
-        <label for="username">Usuario:</label>
-        {{ form.username(class="form-control") }}
-    
-        <label for="steam_id">Steam ID:</label>
-        {{ form.steam_id(class="form-control") }}
-    
-        <label for="password">Contraseña:</label>
-        {{ form.password(class="form-control") }}
-    
-        <label for="confirm_password">Confirmar Contraseña:</label>
-        {{ form.confirm_password(class="form-control") }}
-    
-        <button type="submit">Registrarse</button>
-    </form>
-    
-
-    <!-- Mensaje de carga -->
-    <div id="loading-message" class="mt-3 text-info"></div>
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Registro</h2>
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nombre de usuario:</label>
+                            {{ form.username(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="steam_id" class="form-label">Steam ID:</label>
+                            {{ form.steam_id(class="form-control") }}
+                            <small class="text-muted">Ingresa tu ID de Steam, no tu nombre de usuario.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña:</label>
+                            {{ form.password(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirmar Contraseña:</label>
+                            {{ form.confirm_password(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+                    </form>
+                    <div id="loading-message" class="mt-3 text-info text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Importar SocketIO -->

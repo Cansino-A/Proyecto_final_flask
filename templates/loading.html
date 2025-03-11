@@ -3,45 +3,43 @@
 
 {% block content %}
 <div class="container text-center mt-5">
-    <h2>Cargando tu biblioteca de Steam...</h2>
-    <p>Esto puede tardar unos segundos, por favor espera.</p>
+    <h2 class="mb-4">Cargando tu biblioteca de Steam...</h2>
+    <p class="text-muted">Esto puede tardar unos segundos, por favor espera.</p>
 
-    <!-- 🔄 Animación de carga -->
-    <div class="spinner-border text-primary" role="status">
+    <!-- Animación de carga -->
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
         <span class="visually-hidden">Cargando...</span>
     </div>
 
-    <!-- 📊 Barra de progreso -->
-    <div class="progress mt-4" style="height: 20px;">
+    <!-- Barra de progreso -->
+    <div class="progress mt-4 mx-auto" style="width: 50%; height: 20px;">
         <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 0%;">
             0%
         </div>
     </div>
 
-    <p class="mt-3" id="status-message">Obteniendo datos de Steam...</p>
+    <p class="mt-3 text-muted" id="status-message">Obteniendo datos de Steam...</p>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         checkFetchStatus();
     });
-    
+
     function checkFetchStatus() {
-        fetch(`/api/fetch_games?user_id={{ user_id }}`)
+        fetch(`/api/check_games_status?user_id={{ user_id }}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === "done") {
-                    window.location.href = "/dashboard";  // ✅ Redirige cuando termine
+                    window.location.href = "/dashboard";  // Redirige cuando termine
                 } else {
-                    setTimeout(checkFetchStatus, 3000); // ⏳ Reintenta cada 3 segundos
+                    setTimeout(checkFetchStatus, 3000); // Reintenta cada 3 segundos
                 }
             })
             .catch(error => {
                 console.error("Error verificando estado de carga:", error);
-                setTimeout(checkFetchStatus, 5000);  // 🔄 Reintenta en caso de error
+                setTimeout(checkFetchStatus, 5000);  // Reintenta en caso de error
             });
     }
-    </script>
-    
-
+</script>
 {% endblock %}

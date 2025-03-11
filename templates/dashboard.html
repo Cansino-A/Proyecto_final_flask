@@ -3,86 +3,146 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="text-center mt-3">Tu Biblioteca de Steam</h2>
-    
-    <div id="games-container" class="accordion mt-4">
-        {% if games %}
-            {% for game in games %}
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading{{ game.id }}">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ game.id }}" aria-expanded="false" aria-controls="collapse{{ game.id }}">
-                            <img src="{{ game.image }}" width="100" class="me-3">
-                            <strong>{{ game.name }}</strong>
-                            <span class="text-muted ms-2">({{ game.playtime }} horas)</span>
-                            <span class="ms-auto badge bg-primary rounded-pill">
-                                {{ game.achieved_achievements|length }}/{{ game.achieved_achievements|length + game.pending_achievements|length }}
-                            </span>
-                        </button>
-                    </h2>
-                    <div id="collapse{{ game.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ game.id }}" data-bs-parent="#games-container">
-                        <div class="accordion-body">
-                            <!-- Logros obtenidos -->
-                            <div class="mb-4">
-                                <h6>Logros obtenidos:</h6>
-                                <ul class="list-group">
-                                    {% if game.achieved_achievements %}
-                                        {% for achievement in game.achieved_achievements %}
-                                            <li class="list-group-item">
-                                                <span class="badge bg-success me-2">✔</span>
-                                                <strong>{{ achievement.name }}</strong> - {{ achievement.description }}
-                                                <span class="text-muted ms-2">(Desbloqueado: {{ achievement.unlock_time }})</span>
-                                            </li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li class="list-group-item text-muted">No has desbloqueado logros en este juego.</li>
-                                    {% endif %}
-                                </ul>
-                            </div>
+    <h2 class="text-center mt-3 mb-4">Tu Biblioteca de Steam</h2>
 
-                            <!-- Logros pendientes -->
-                            <div>
-                                <h6>Logros pendientes:</h6>
-                                <ul class="list-group">
-                                    {% if game.pending_achievements %}
-                                        {% for achievement in game.pending_achievements %}
-                                            <li class="list-group-item">
-                                                <span class="badge bg-secondary me-2">🔒</span>
-                                                <strong>{{ achievement.name }}</strong> - {{ achievement.description }}
-                                            </li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li class="list-group-item text-muted">¡Felicidades! Has desbloqueado todos los logros.</li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p class="text-center">No se encontraron juegos en tu biblioteca.</p>
-        {% endif %}
-    </div>
+    <!-- Paginación superior -->
+    <nav aria-label="Paginación superior" class="mb-4">
+        <ul class="pagination justify-content-center" id="pagination-top">
+            <!-- Los botones de paginación se generarán dinámicamente -->
+        </ul>
+    </nav>
 
-    <!-- Paginación de juegos -->
-    <nav aria-label="Paginación de juegos" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% if pagination.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('dashboard', page=pagination.prev_num) }}">Anterior</a>
-                </li>
-            {% endif %}
-            {% for page_num in pagination.iter_pages() %}
-                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('dashboard', page=page_num) }}">{{ page_num }}</a>
-                </li>
-            {% endfor %}
-            {% if pagination.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('dashboard', page=pagination.next_num) }}">Siguiente</a>
-                </li>
-            {% endif %}
+    <!-- Contenedor para los juegos -->
+    <div id="games-container" class="accordion"></div>
+
+    <!-- Paginación inferior -->
+    <nav aria-label="Paginación inferior" class="mt-4">
+        <ul class="pagination justify-content-center" id="pagination-bottom">
+            <!-- Los botones de paginación se generarán dinámicamente -->
         </ul>
     </nav>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        loadGames(1);  // Cargar la primera página al inicio
+    });
+
+    function loadGames(page) {
+        fetch(`/dashboard?page=${page}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'  // Indicar que es una solicitud AJAX
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Limpiar el contenedor de juegos
+            const gamesContainer = document.getElementById("games-container");
+            gamesContainer.innerHTML = "";
+
+            // Mostrar los juegos
+            data.games.forEach(game => {
+                const gameHtml = `
+                    <div class="accordion-item mb-3">
+                        <h2 class="accordion-header" id="heading${game.id}">
+                            <button class="accordion-button collapsed d-flex justify-content-between align-items-center w-100" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${game.id}" aria-expanded="false" aria-controls="collapse${game.id}">
+                                <div class="d-flex align-items-center">
+                                    <img src="${game.image}" width="100" class="me-3 rounded">
+                                    <div class="d-flex flex-column">
+                                        <strong class="text-truncate">${game.name}</strong>
+                                        <span class="text-muted">${game.playtime} horas jugadas</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-center" style="position: absolute; left: 50%; transform: translateX(-50%);">
+                                    <span class="badge bg-primary rounded-pill">
+                                        ${game.achieved_achievements.length}/${game.achieved_achievements.length + game.pending_achievements.length}
+                                    </span>
+                                    <small class="text-muted">Logros</small>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse${game.id}" class="accordion-collapse collapse" aria-labelledby="heading${game.id}" data-bs-parent="#games-container">
+                            <div class="accordion-body">
+                                <!-- Sub-acordeón para logros obtenidos -->
+                                <div class="accordion mb-3" id="achievedAccordion${game.id}">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="achievedHeading${game.id}">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#achievedCollapse${game.id}" aria-expanded="false" aria-controls="achievedCollapse${game.id}">
+                                                <i class="fas fa-trophy me-2"></i>Logros Obtenidos (${game.achieved_achievements.length})
+                                            </button>
+                                        </h2>
+                                        <div id="achievedCollapse${game.id}" class="accordion-collapse collapse" aria-labelledby="achievedHeading${game.id}" data-bs-parent="#achievedAccordion${game.id}">
+                                            <div class="accordion-body">
+                                                <ul class="list-group">
+                                                    ${game.achieved_achievements.length > 0 ?
+                                                        game.achieved_achievements.map(a => `
+                                                            <li class="list-group-item">
+                                                                <span class="badge bg-success me-2">✔</span>
+                                                                <strong>${a.name}</strong> - ${a.description}
+                                                                <span class="text-muted ms-2">(Desbloqueado: ${a.unlock_time})</span>
+                                                            </li>
+                                                        `).join("") :
+                                                        `<li class="list-group-item text-muted">No has desbloqueado logros en este juego.</li>`
+                                                    }
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sub-acordeón para logros pendientes -->
+                                <div class="accordion" id="pendingAccordion${game.id}">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="pendingHeading${game.id}">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pendingCollapse${game.id}" aria-expanded="false" aria-controls="pendingCollapse${game.id}">
+                                                <i class="fas fa-lock me-2"></i>Logros Pendientes (${game.pending_achievements.length})
+                                            </button>
+                                        </h2>
+                                        <div id="pendingCollapse${game.id}" class="accordion-collapse collapse" aria-labelledby="pendingHeading${game.id}" data-bs-parent="#pendingAccordion${game.id}">
+                                            <div class="accordion-body">
+                                                <ul class="list-group">
+                                                    ${game.pending_achievements.length > 0 ?
+                                                        game.pending_achievements.map(a => `
+                                                            <li class="list-group-item">
+                                                                <span class="badge bg-secondary me-2">🔒</span>
+                                                                <strong>${a.name}</strong> - ${a.description}
+                                                            </li>
+                                                        `).join("") :
+                                                        `<li class="list-group-item text-muted">¡Felicidades! Has desbloqueado todos los logros.</li>`
+                                                    }
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                gamesContainer.innerHTML += gameHtml;
+            });
+
+            // Actualizar la paginación superior e inferior
+            const updatePagination = (paginationId) => {
+                const paginationContainer = document.getElementById(paginationId);
+                paginationContainer.innerHTML = "";
+
+                if (data.total_pages > 1) {
+                    for (let i = 1; i <= data.total_pages; i++) {
+                        const pageItem = document.createElement("li");
+                        pageItem.className = `page-item ${i === data.current_page ? "active" : ""}`;
+                        pageItem.innerHTML = `<a class="page-link" href="#" onclick="loadGames(${i})">${i}</a>`;
+                        paginationContainer.appendChild(pageItem);
+                    }
+                }
+            };
+
+            updatePagination("pagination-top");
+            updatePagination("pagination-bottom");
+        })
+        .catch(error => {
+            console.error("Error cargando los juegos:", error);
+        });
+    }
+</script>
 {% endblock %}

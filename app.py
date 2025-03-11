@@ -133,13 +133,9 @@ def fetch_and_store_achievements(user, game_id):
 # 🌍 RUTAS DE LA APLICACIÓN
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
+    """Página de inicio."""
+    return render_template('index.html')
 
-from threading import Thread
-
-from flask_login import login_user
-
-from flask_login import login_user
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -150,22 +146,46 @@ def register():
             flash('El nombre de usuario ya está en uso.', 'warning')
             return redirect(url_for('register'))
 
-        user = User(username=form.username.data, steam_id=form.steam_id.data)
+        # Obtener el nombre de Steam a partir del ID de Steam
+        steam_id = form.steam_id.data
+        steam_name = get_steam_username(steam_id)  # Función para obtener el nombre de Steam
+
+        if not steam_name:
+            flash('No se pudo obtener el nombre de Steam. Verifica tu ID de Steam.', 'danger')
+            return redirect(url_for('register'))
+
+        # Crear el usuario con el nombre de Steam
+        user = User(username=steam_name, steam_id=steam_id)  # Usamos steam_name como username
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
 
-        login_user(user, remember=True)  # 🔥 Mantener la sesión activa
+        login_user(user, remember=True)  # Mantener la sesión activa
 
         flash('Cuenta creada con éxito. Redirigiendo a tu biblioteca...', 'success')
 
-        # 🔥🚨 Evitar múltiples llamadas a la API Steam
-        if not Game.query.filter_by(user_id=user.id).first():
-            fetch_and_store_games(user)
+        # Iniciar la descarga de juegos en segundo plano
+        def fetch_games_background(user):
+            with app.app_context():  # Necesario para acceder a la base de datos en un hilo
+                fetch_and_store_games(user)
 
-        return redirect(url_for('loading', user_id=user.id)) 
+        thread = Thread(target=fetch_games_background, args=(user,))
+        thread.start()
+
+        return redirect(url_for('loading', user_id=user.id))  # Redirigir a la página de loading
 
     return render_template('register.html', form=form)
+
+def get_steam_username(steam_id):
+    """Obtiene el nombre de usuario de Steam a partir del ID de Steam."""
+    url = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={STEAM_API_KEY}&steamids={steam_id}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        if "response" in data and "players" in data["response"] and data["response"]["players"]:
+            return data["response"]["players"][0]["personaname"]  # Nombre de Steam
+    return None
 
 
 
@@ -176,7 +196,7 @@ def register():
 
 @app.route('/loading/<int:user_id>')
 def loading(user_id):
-    """Muestra la pantalla de carga y comienza a obtener juegos."""
+    """Muestra la pantalla de carga mientras se descargan los juegos."""
     return render_template('loading.html', user_id=user_id)
 
 
@@ -197,21 +217,41 @@ def login():
 @login_required
 def dashboard():
     """Muestra el dashboard con los juegos paginados."""
-    
-    # Obtener la página actual (por defecto, página 1)
-    page = request.args.get('page', 1, type=int)
-    per_page = 10  # Mostrar 10 juegos por página
+    # Si es una solicitud AJAX, devuelve solo los juegos en formato JSON
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        page = request.args.get('page', 1, type=int)
+        per_page = 10  # Mostrar 10 juegos por página
+        games_pagination = Game.query.filter_by(user_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
+        games = games_pagination.items
 
-    # Obtener los juegos del usuario paginados
-    games_pagination = Game.query.filter_by(user_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
-    games = games_pagination.items
+        # Asociar todos los logros a cada juego (obtenidos y pendientes)
+        games_data = []
+        for game in games:
+            game_data = {
+                "id": game.id,
+                "name": game.name,
+                "playtime": game.playtime,
+                "image": game.image,
+                "achieved_achievements": [{
+                    "name": a.name,
+                    "description": a.description,
+                    "unlock_time": a.unlock_time.strftime("%Y-%m-%d %H:%M:%S") if a.unlock_time else None
+                } for a in Achievement.query.filter_by(game_id=game.id, achieved=True).all()],
+                "pending_achievements": [{
+                    "name": a.name,
+                    "description": a.description
+                } for a in Achievement.query.filter_by(game_id=game.id, achieved=False).all()]
+            }
+            games_data.append(game_data)
 
-    # Asociar todos los logros a cada juego (obtenidos y pendientes)
-    for game in games:
-        game.achieved_achievements = Achievement.query.filter_by(game_id=game.id, achieved=True).all()
-        game.pending_achievements = Achievement.query.filter_by(game_id=game.id, achieved=False).all()
+        return jsonify({
+            "games": games_data,
+            "total_pages": games_pagination.pages,
+            "current_page": page
+        })
 
-    return render_template('dashboard.html', games=games, pagination=games_pagination)
+    # Si no es una solicitud AJAX, renderiza la plantilla completa
+    return render_template('dashboard.html')
 
 
 
@@ -302,7 +342,20 @@ def fetch_games():
     return jsonify({"success": True, "status": "loading"})  # 🚨 Indicar al frontend que sigue cargando
 
 
+@app.route('/api/check_games_status')
+def check_games_status():
+    """Verifica si la descarga de juegos ha terminado."""
+    user_id = request.args.get("user_id", type=int)
+    user = User.query.get(user_id)
 
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    # Verifica si hay juegos en la base de datos para este usuario
+    if Game.query.filter_by(user_id=user.id).first():
+        return jsonify({"status": "done"})  # La descarga ha terminado
+    else:
+        return jsonify({"status": "loading"})  # La descarga aún está en progreso
 
 
 
