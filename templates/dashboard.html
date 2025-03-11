@@ -23,13 +23,14 @@ document.addEventListener("DOMContentLoaded", function() {
 function loadGames(page) {
     fetch(`/api/games?page=${page}`, {
         method: "GET",
-        credentials: "include"  // ⬅ Importante para enviar cookies de sesión
+        credentials: "include"  // ⬅ Esto permite enviar la sesión en la petición
     })
     .then(response => {
         if (!response.ok) {
             if (response.status === 401) {
                 console.error("Sesión expirada. Redirigiendo a login...");
-                window.location.href = "/login";  // ⬅ Si está deslogueado, redirigir manualmente
+                window.location.href = "/login";  // ⬅ Redirige al login si la sesión es inválida
+                return;
             }
             throw new Error("Error en la respuesta de la API");
         }
@@ -41,14 +42,21 @@ function loadGames(page) {
             document.getElementById("games-container").innerHTML = `<p class="text-center text-danger">${data.error}</p>`;
             return;
         }
-        // Renderizar juegos...
+
+        // Procesar juegos aquí...
+
     })
     .catch(error => {
         console.error("Error cargando juegos:", error);
         document.getElementById("games-container").innerHTML = `<p class="text-center text-danger">Error al cargar juegos, reintentando...</p>`;
-        setTimeout(() => loadGames(page), 5000); // Reintenta después de 5 segundos
+
+        // ❌ Evita reintentar si el usuario no está autenticado
+        if (!error.message.includes("401")) {
+            setTimeout(() => loadGames(page), 5000); // ⬅ Solo reintenta si el error no es 401
+        }
     });
 }
+
 
 
 function loadAchievements(appid) {

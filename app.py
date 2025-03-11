@@ -76,24 +76,40 @@ def fetch_and_store_games(user):
     db.session.commit()
 
 
-def fetch_and_store_achievements(game, user):
-    achievements_url = f"https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={STEAM_API_KEY}&steamid={user.steam_id}&appid={game.appid}"
-    achievements_response = requests.get(achievements_url)
+def fetch_and_store_achievements(user, game_id):
+    url = f"http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid={game_id}&key={STEAM_API_KEY}&steamid={user.steam_id}"
+    response = requests.get(url)
     
-    if achievements_response.status_code == 200:
-        achievements_data = achievements_response.json()
-        if "playerstats" in achievements_data and "achievements" in achievements_data["playerstats"]:
-            for ach in achievements_data["playerstats"]["achievements"]:
-                existing_achievement = Achievement.query.filter_by(game_id=game.id, name=ach.get("name")).first()
+    if response.status_code != 200:
+        print(f"⚠ Error obteniendo logros para {game_id}: {response.status_code}")
+        return
+    
+    data = response.json()
+
+    if "playerstats" in data and "achievements" in data["playerstats"]:
+        print(f"✅ Logros obtenidos para {game_id}: {len(data['playerstats']['achievements'])}")
+        
+        for achievement in data["playerstats"]["achievements"]:
+            if achievement["achieved"] == 1:
+                existing_achievement = Achievement.query.filter_by(
+                    game_id=game_id, name=achievement["apiname"]
+                ).first()
+                
                 if not existing_achievement:
-                    achievement = Achievement(
-                        game_id=game.id,
-                        name=ach.get("name", "Logro Desconocido"),
-                        description=ach.get("description", "Sin descripción"),
-                        achieved=ach.get("achieved", 0) == 1
+                    new_achievement = Achievement(
+                        game_id=game_id,
+                        name=achievement["apiname"],
+                        description="Desbloqueado",
+                        achieved=True,
+                        unlock_time=achievement["unlocktime"]
                     )
-                    db.session.add(achievement)
-    db.session.commit()
+                    db.session.add(new_achievement)
+        
+        db.session.commit()
+
+
+
+
 
 # 🌍 RUTAS DE LA APLICACIÓN
 @app.route('/')
@@ -101,6 +117,8 @@ def index():
     return redirect(url_for('login'))
 
 from threading import Thread
+
+from flask_login import login_user
 
 from flask_login import login_user
 
@@ -113,19 +131,18 @@ def register():
             flash('El nombre de usuario ya está en uso.', 'warning')
             return redirect(url_for('register'))
 
-        # Crear nuevo usuario
         user = User(username=form.username.data, steam_id=form.steam_id.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
 
-        # 🔥 Iniciar sesión automáticamente después de registrarse
-        login_user(user, remember=True)  # ⬅ Esto evita que la sesión se pierda
+        login_user(user, remember=True)  # 🔥 Mantener la sesión activa
 
         flash('Cuenta creada con éxito. Redirigiendo a tu biblioteca...', 'success')
-        return redirect(url_for('loading', user_id=user.id))  # Redirigir a la pantalla de carga
+        return redirect(url_for('loading', user_id=user.id)) 
 
     return render_template('register.html', form=form)
+
 
 
 
@@ -208,8 +225,11 @@ def api_achievements(appid):
     game = Game.query.filter_by(appid=appid, user_id=current_user.id).first()
     if not game:
         return jsonify({"error": "Juego no encontrado"}), 404
+
     achievements = Achievement.query.filter_by(game_id=game.id, achieved=True).all()
-    return jsonify({"achievements": [{"name": a.name, "description": a.description} for a in achievements]})
+    return jsonify({
+        "achievements": [{"name": ach.name, "description": ach.description} for ach in achievements]
+    })
 
 @app.route('/check_games')
 def check_games():

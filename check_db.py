@@ -1,22 +1,36 @@
-from models import db, User, Game, Achievement
-from app import app
+import sqlite3
 
-# Ejecutar dentro del contexto de la aplicación
-with app.app_context():
-    print("🔄 Eliminando y recreando la base de datos...")
-    #db.drop_all()  # Elimina todas las tablas existentes
-    db.create_all()  # Crea todas las tablas desde cero
+def view_database(db_path="instance/games.db"):
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        print("📂 Contenido de la base de datos \"games.db\":")
+        
+        # Mostrar juegos
+        print("\n🎮 Tabla: games")
+        cursor.execute("SELECT * FROM game")
+        games = cursor.fetchall()
+        for game in games:
+            print(game)
+        
+        # Mostrar logros
+        print("\n🏆 Tabla: achievements")
+        cursor.execute("SELECT * FROM achievement")
+        achievements = cursor.fetchall()
+        for achievement in achievements:
+            print(achievement)
+        
+        # Mostrar usuarios
+        print("\n👤 Tabla: users")
+        cursor.execute("SELECT * FROM user")
+        users = cursor.fetchall()
+        for user in users:
+            print(user)
+        
+        conn.close()
+    except Exception as e:
+        print(f"❌ Error al leer la base de datos: {e}")
 
-    # Comprobar si las tablas se han creado
-    inspector = db.inspect(db.engine)
-    tables = inspector.get_table_names()
-    print(f"✅ Tablas creadas: {tables}")
-
-    # Imprimir estructura de cada tabla
-    for table in tables:
-        columns = inspector.get_columns(table)
-        print(f"\n📌 Estructura de la tabla '{table}':")
-        for column in columns:
-            print(f" - {column['name']} ({column['type']})")
-
-    print("\n🎉 Base de datos creada correctamente.")
+if __name__ == "__main__":
+    view_database()
