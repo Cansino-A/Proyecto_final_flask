@@ -6,233 +6,83 @@
     <h2 class="text-center mt-3">Tu Biblioteca de Steam</h2>
     
     <div id="games-container" class="accordion mt-4">
-        <p class="text-center">Cargando juegos...</p>
-    </div>
-
-    <!-- Controles de paginación -->
-    <nav aria-label="Paginación">
-        <ul class="pagination justify-content-center mt-4" id="pagination-controls"></ul>
-    </nav>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    loadGames(1);
-});
-
-function loadGames(page) {
-    fetch(`/api/games?page=${page}`, {
-        method: "GET",
-        credentials: "include"  // ⬅ Esto permite enviar la sesión en la petición
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 401) {
-                console.error("Sesión expirada. Redirigiendo a login...");
-                window.location.href = "/login";  // ⬅ Redirige al login si la sesión es inválida
-                return;
-            }
-            throw new Error("Error en la respuesta de la API");
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.error) {
-            console.error("Error de API:", data.error);
-            document.getElementById("games-container").innerHTML = `<p class="text-center text-danger">${data.error}</p>`;
-            return;
-        }
-
-        // Procesar juegos aquí...
-
-    })
-    .catch(error => {
-        console.error("Error cargando juegos:", error);
-        document.getElementById("games-container").innerHTML = `<p class="text-center text-danger">Error al cargar juegos, reintentando...</p>`;
-
-        // ❌ Evita reintentar si el usuario no está autenticado
-        if (!error.message.includes("401")) {
-            setTimeout(() => loadGames(page), 5000); // ⬅ Solo reintenta si el error no es 401
-        }
-    });
-}
-
-
-
-function loadAchievements(appid) {
-    let achievementsList = document.getElementById(`achievements-list-${appid}`);
-    achievementsList.innerHTML = "<p class='text-center'>Cargando logros...</p>";
-
-    fetch(`/api/achievements/${appid}`)
-        .then(response => response.json())
-        .then(data => {
-            achievementsList.innerHTML = "";
-            
-            if (data.error) {
-                achievementsList.innerHTML = `<p class="text-danger">${data.error}</p>`;
-                return;
-            }
-
-            if (data.achievements.length === 0) {
-                achievementsList.innerHTML = "<p class='text-muted'>No se han desbloqueado logros en este juego.</p>";
-                return;
-            }
-
-            data.achievements.forEach(achievement => {
-                let achievementHTML = `
-                    <li class="list-group-item d-flex align-items-center">
-                        <span class="badge bg-success me-2">✔</span>
-                        <strong>${achievement.name}</strong> - ${achievement.description}
-                    </li>
-                `;
-                achievementsList.innerHTML += achievementHTML;
-            });
-        })
-        .catch(error => {
-            achievementsList.innerHTML = `<p class="text-danger">Error al cargar logros.</p>`;
-            console.error("Error cargando logros:", error);
-        });
-}
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        checkGames();
-    });
-    
-    let interval = setInterval(checkGames, 5000);  // Verifica cada 5 segundos
-    let totalPages = 1; // Número total de páginas
-    
-    function checkGames() {
-        fetch(`/api/games?page=1`)
-            .then(response => response.json())
-            .then(data => {
-                console.log("📌 Comprobando juegos...", data.games.length);
-    
-                if (data.games.length > 0) {
-                    clearInterval(interval);  // Detiene la verificación cuando haya juegos
-                    totalPages = data.total_pages;  // Guarda el número total de páginas
-                    loadGames(1);  // Carga la primera página inicialmente
-                    renderPagination(1, totalPages);
-                }
-            })
-            .catch(error => console.error("🚨 Error comprobando juegos:", error));
-    }
-    
-    function loadGames(page) {
-    fetch(`/api/games?page=${page}`, {
-        method: "GET",
-        credentials: "include" // 👈 IMPORTANTE: Envía cookies de sesión
-    })
-    .then(response => {
-        if (response.redirected) {
-            window.location.href = response.url;  // Redirige si la API manda un login
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.error) {
-            document.getElementById("games-container").innerHTML = `<p class="text-center text-danger">${data.error}</p>`;
-            return;
-        }
-
-        const container = document.getElementById("games-container");
-        const pagination = document.getElementById("pagination-controls");
-        container.innerHTML = "";
-        pagination.innerHTML = "";
-
-        data.games.forEach(game => {
-            const gameHTML = `
+        {% if games %}
+            {% for game in games %}
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading${game.appid}">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${game.appid}">
-                            <img src="${game.image}" width="100" class="me-3"> 
-                            <strong>${game.name}</strong> 
-                            <span class="text-muted">(${game.playtime} horas, 🏆 ${game.achieved_count} logros)</span>
+                    <h2 class="accordion-header" id="heading{{ game.id }}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ game.id }}" aria-expanded="false" aria-controls="collapse{{ game.id }}">
+                            <img src="{{ game.image }}" width="100" class="me-3">
+                            <strong>{{ game.name }}</strong>
+                            <span class="text-muted ms-2">({{ game.playtime }} horas)</span>
+                            <span class="ms-auto badge bg-primary rounded-pill">
+                                {{ game.achieved_achievements|length }}/{{ game.achieved_achievements|length + game.pending_achievements|length }}
+                            </span>
                         </button>
                     </h2>
-                    <div id="collapse${game.appid}" class="accordion-collapse collapse" data-bs-parent="#games-container">
+                    <div id="collapse{{ game.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ game.id }}" data-bs-parent="#games-container">
                         <div class="accordion-body">
-                            <button class="btn btn-primary btn-sm" onclick="loadAchievements(${game.appid})">Ver Logros</button>
-                            <ul id="achievements-list-${game.appid}" class="list-group mt-3"></ul>
+                            <!-- Logros obtenidos -->
+                            <div class="mb-4">
+                                <h6>Logros obtenidos:</h6>
+                                <ul class="list-group">
+                                    {% if game.achieved_achievements %}
+                                        {% for achievement in game.achieved_achievements %}
+                                            <li class="list-group-item">
+                                                <span class="badge bg-success me-2">✔</span>
+                                                <strong>{{ achievement.name }}</strong> - {{ achievement.description }}
+                                                <span class="text-muted ms-2">(Desbloqueado: {{ achievement.unlock_time }})</span>
+                                            </li>
+                                        {% endfor %}
+                                    {% else %}
+                                        <li class="list-group-item text-muted">No has desbloqueado logros en este juego.</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+
+                            <!-- Logros pendientes -->
+                            <div>
+                                <h6>Logros pendientes:</h6>
+                                <ul class="list-group">
+                                    {% if game.pending_achievements %}
+                                        {% for achievement in game.pending_achievements %}
+                                            <li class="list-group-item">
+                                                <span class="badge bg-secondary me-2">🔒</span>
+                                                <strong>{{ achievement.name }}</strong> - {{ achievement.description }}
+                                            </li>
+                                        {% endfor %}
+                                    {% else %}
+                                        <li class="list-group-item text-muted">¡Felicidades! Has desbloqueado todos los logros.</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
-            `;
-            container.innerHTML += gameHTML;
-        });
+            {% endfor %}
+        {% else %}
+            <p class="text-center">No se encontraron juegos en tu biblioteca.</p>
+        {% endif %}
+    </div>
 
-        // Agregar controles de paginación
-        if (data.total_pages > 1) {
-            if (page > 1) pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadGames(${page - 1})">Anterior</a></li>`;
-            for (let p = 1; p <= data.total_pages; p++) {
-                pagination.innerHTML += `<li class="page-item ${p === page ? 'active' : ''}"><a class="page-link" href="#" onclick="loadGames(${p})">${p}</a></li>`;
-            }
-            if (page < data.total_pages) pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadGames(${page + 1})">Siguiente</a></li>`;
-        }
-    })
-    .catch(error => {
-        console.error("Error cargando juegos:", error);
-        document.getElementById("games-container").innerHTML = `<p class="text-center text-danger">Error al cargar juegos, reintentando...</p>`;
-        setTimeout(() => loadGames(page), 5000); // Reintenta después de 5 segundos
-    });
-}
-
-    
-    function renderPagination(currentPage, totalPages) {
-        const pagination = document.getElementById("pagination-controls");
-        pagination.innerHTML = "";
-    
-        if (totalPages > 1) {
-            if (currentPage > 1) {
-                pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadGames(${currentPage - 1})">Anterior</a></li>`;
-            }
-    
-            for (let p = 1; p <= totalPages; p++) {
-                pagination.innerHTML += `<li class="page-item ${p === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadGames(${p})">${p}</a></li>`;
-            }
-    
-            if (currentPage < totalPages) {
-                pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadGames(${currentPage + 1})">Siguiente</a></li>`;
-            }
-        }
-    }
-    
-    function loadAchievements(appid) {
-        let achievementsList = document.getElementById(`achievements-list-${appid}`);
-        achievementsList.innerHTML = "<p class='text-center'>Cargando logros...</p>";
-    
-        fetch(`/api/achievements/${appid}`)
-            .then(response => response.json())
-            .then(data => {
-                achievementsList.innerHTML = "";
-                
-                if (data.error) {
-                    achievementsList.innerHTML = `<p class="text-danger">${data.error}</p>`;
-                    return;
-                }
-    
-                if (data.achievements.length === 0) {
-                    achievementsList.innerHTML = "<p class='text-muted'>No se han desbloqueado logros en este juego.</p>";
-                    return;
-                }
-    
-                data.achievements.forEach(achievement => {
-                    let achievementHTML = `
-                        <li class="list-group-item d-flex align-items-center">
-                            <span class="badge bg-success me-2">✔</span>
-                            <strong>${achievement.name}</strong> - ${achievement.description}
-                        </li>
-                    `;
-                    achievementsList.innerHTML += achievementHTML;
-                });
-            })
-            .catch(error => {
-                achievementsList.innerHTML = `<p class="text-danger">Error al cargar logros.</p>`;
-                console.error("Error cargando logros:", error);
-            });
-    }
-    </script>
-    
-
+    <!-- Paginación de juegos -->
+    <nav aria-label="Paginación de juegos" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('dashboard', page=pagination.prev_num) }}">Anterior</a>
+                </li>
+            {% endif %}
+            {% for page_num in pagination.iter_pages() %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('dashboard', page=page_num) }}">{{ page_num }}</a>
+                </li>
+            {% endfor %}
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('dashboard', page=pagination.next_num) }}">Siguiente</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
 {% endblock %}

@@ -22,62 +22,26 @@
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    let progress = 0;
-    const progressBar = document.getElementById("progress-bar");
-    const statusMessage = document.getElementById("status-message");
-    const userId = "{{ user_id }}";  // Obtenemos el ID del usuario registrado
-
-    function updateProgress(value, message) {
-        progress = value;
-        progressBar.style.width = progress + "%";
-        progressBar.innerText = progress + "%";
-        statusMessage.innerText = message;
-    }
-
-    // Simulación de progreso inicial
-    let simulatedProgress = 0;
-    let progressInterval = setInterval(() => {
-        if (simulatedProgress < 90) {
-            simulatedProgress += 10;
-            updateProgress(simulatedProgress, "Cargando juegos...");
-        } else {
-            clearInterval(progressInterval);
-        }
-    }, 1000);
-
-    // Llama a la API para iniciar la descarga de juegos
-    fetch(`/api/fetch_games?user_id=${userId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                checkGamesLoaded();
-            } else {
-                statusMessage.innerText = "Error al cargar juegos.";
-            }
-        });
-
-    // Verifica cada 2 segundos si los juegos ya están disponibles
-    function checkGamesLoaded() {
-        fetch("/api/games?page=1")
+    document.addEventListener("DOMContentLoaded", function() {
+        checkFetchStatus();
+    });
+    
+    function checkFetchStatus() {
+        fetch(`/api/fetch_games?user_id={{ user_id }}`)
             .then(response => response.json())
             .then(data => {
-                if (data.games.length > 0) {
-                    updateProgress(100, "Carga completada. Redirigiendo...");
-                    setTimeout(() => {
-                        window.location.href = "/dashboard";  
-                    }, 1000);
+                if (data.status === "done") {
+                    window.location.href = "/dashboard";  // ✅ Redirige cuando termine
                 } else {
-                    setTimeout(checkGamesLoaded, 2000);
+                    setTimeout(checkFetchStatus, 3000); // ⏳ Reintenta cada 3 segundos
                 }
             })
             .catch(error => {
-                console.error("Error verificando juegos:", error);
-                statusMessage.innerText = "Error al cargar. Reintentando...";
-                setTimeout(checkGamesLoaded, 3000);
+                console.error("Error verificando estado de carga:", error);
+                setTimeout(checkFetchStatus, 5000);  // 🔄 Reintenta en caso de error
             });
     }
-});
-</script>
+    </script>
+    
 
 {% endblock %}

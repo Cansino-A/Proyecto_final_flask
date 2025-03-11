@@ -40,7 +40,7 @@ def load_user(user_id):
 
 # 🚀 FUNCIONES PARA CARGAR JUEGOS Y LOGROS EN SEGUNDO PLANO
 def fetch_and_store_games(user):
-    """Descarga y almacena los juegos de un usuario de Steam."""
+    """Descarga y almacena los juegos de un usuario de Steam, evitando duplicados."""
     url = f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={STEAM_API_KEY}&steamid={user.steam_id}&include_appinfo=true&include_played_free_games=true"
     
     response = requests.get(url)
@@ -54,26 +54,30 @@ def fetch_and_store_games(user):
             for game in data["response"]["games"]:
                 existing_game = Game.query.filter_by(appid=game["appid"], user_id=user.id).first()
 
-                if not existing_game:
-                    print(f"✅ Agregando juego a la BD: {game.get('name', 'Juego Desconocido')} (ID: {game['appid']})")
-                    
-                    new_game = Game(
-                        appid=game["appid"],
-                        name=game.get("name", "Juego Desconocido"),
-                        playtime=game.get("playtime_forever", 0) // 60,
-                        image=f"https://cdn.cloudflare.steamstatic.com/steam/apps/{game['appid']}/capsule_184x69.jpg",
-                        user_id=user.id
-                    )
-
-                    db.session.add(new_game)
-                else:
+                if existing_game:
                     print(f"🔸 Juego ya existe en la BD: {existing_game.name} (ID: {existing_game.appid})")
+                    continue  # 🚨 Si ya existe, pasa al siguiente juego
 
-            db.session.commit()
-            print("📥 Juegos guardados en la base de datos.")
+                print(f"✅ Agregando juego a la BD: {game.get('name', 'Juego Desconocido')} (ID: {game['appid']})")
+                
+                new_game = Game(
+                    appid=game["appid"],
+                    name=game.get("name", "Juego Desconocido"),
+                    playtime=game.get("playtime_forever", 0) // 60,
+                    image=f"https://cdn.cloudflare.steamstatic.com/steam/apps/{game['appid']}/capsule_184x69.jpg",
+                    user_id=user.id
+                )
+
+                db.session.add(new_game)
+                db.session.commit()  # 🔥 Guarda el juego inmediatamente para evitar duplicados
+
+                fetch_and_store_achievements(user, new_game.appid)  # ⬅ Llamar a logros solo para juegos nuevos
 
     user.last_updated = datetime.utcnow()
     db.session.commit()
+
+
+
 
 
 def fetch_and_store_achievements(user, game_id):
@@ -89,24 +93,39 @@ def fetch_and_store_achievements(user, game_id):
     if "playerstats" in data and "achievements" in data["playerstats"]:
         print(f"✅ Logros obtenidos para {game_id}: {len(data['playerstats']['achievements'])}")
         
+        # Obtener el juego de la base de datos usando el appid
+        game = Game.query.filter_by(appid=game_id, user_id=user.id).first()
+        if not game:
+            print(f"⚠ Juego con appid {game_id} no encontrado en la base de datos.")
+            return
+        
         for achievement in data["playerstats"]["achievements"]:
-            if achievement["achieved"] == 1:
-                existing_achievement = Achievement.query.filter_by(
-                    game_id=game_id, name=achievement["apiname"]
-                ).first()
-                
-                if not existing_achievement:
-                    new_achievement = Achievement(
-                        game_id=game_id,
-                        name=achievement["apiname"],
-                        description="Desbloqueado",
-                        achieved=True,
-                        unlock_time=achievement["unlocktime"]
-                    )
-                    db.session.add(new_achievement)
+            # Verificar si el logro ya existe en la base de datos
+            existing_achievement = Achievement.query.filter_by(
+                game_id=game.id,  # Usar el id del juego, no el appid
+                user_id=user.id,
+                name=achievement["apiname"]
+            ).first()
+            
+            if not existing_achievement:
+                # Insertar el logro, independientemente de si está conseguido o no
+                new_achievement = Achievement(
+                    game_id=game.id,  # Usar el id del juego, no el appid
+                    user_id=user.id,
+                    name=achievement.get("displayName", achievement["apiname"]),  # Usar el nombre descriptivo si está disponible
+                    description="Desbloqueado" if achievement["achieved"] else "Pendiente",
+                    achieved=bool(achievement["achieved"]),  # Convertir a booleano
+                    unlock_time=datetime.utcfromtimestamp(achievement["unlocktime"]) if achievement["unlocktime"] else None
+                )
+                db.session.add(new_achievement)
+            else:
+                # Actualizar el logro si ya existe
+                existing_achievement.achieved = bool(achievement["achieved"])
+                existing_achievement.unlock_time = datetime.utcfromtimestamp(achievement["unlocktime"]) if achievement["unlocktime"] else None
         
         db.session.commit()
-
+    else:
+        print(f"⚠ El juego {game_id} no tiene logros o no se pueden obtener.")
 
 
 
@@ -139,9 +158,16 @@ def register():
         login_user(user, remember=True)  # 🔥 Mantener la sesión activa
 
         flash('Cuenta creada con éxito. Redirigiendo a tu biblioteca...', 'success')
+
+        # 🔥🚨 Evitar múltiples llamadas a la API Steam
+        if not Game.query.filter_by(user_id=user.id).first():
+            fetch_and_store_games(user)
+
         return redirect(url_for('loading', user_id=user.id)) 
 
     return render_template('register.html', form=form)
+
+
 
 
 
@@ -166,20 +192,27 @@ def login():
         flash('Usuario o contraseña incorrectos.', 'danger')
     return render_template('login.html', form=form)
 
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Muestra el dashboard y verifica si hay juegos almacenados en la BD."""
-    games = Game.query.filter_by(user_id=current_user.id).all()
+    """Muestra el dashboard con los juegos paginados."""
+    
+    # Obtener la página actual (por defecto, página 1)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Mostrar 10 juegos por página
 
-    if not games:
-        print("🚨 No hay juegos en la base de datos para este usuario.")
-    else:
-        print(f"✅ Se encontraron {len(games)} juegos en la BD para {current_user.username}")
-        for game in games:
-            print(f" - {game.name} (ID: {game.appid})")
+    # Obtener los juegos del usuario paginados
+    games_pagination = Game.query.filter_by(user_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
+    games = games_pagination.items
 
-    return render_template('dashboard.html', games=games)
+    # Asociar todos los logros a cada juego (obtenidos y pendientes)
+    for game in games:
+        game.achieved_achievements = Achievement.query.filter_by(game_id=game.id, achieved=True).all()
+        game.pending_achievements = Achievement.query.filter_by(game_id=game.id, achieved=False).all()
+
+    return render_template('dashboard.html', games=games, pagination=games_pagination)
+
 
 
 @app.route('/logout')
@@ -221,15 +254,21 @@ def api_games():
 
 @app.route('/api/achievements/<int:appid>')
 @login_required
-def api_achievements(appid):
-    game = Game.query.filter_by(appid=appid, user_id=current_user.id).first()
-    if not game:
-        return jsonify({"error": "Juego no encontrado"}), 404
+def get_achievements(appid):
+    user_id = current_user.id
+    game = Game.query.filter_by(appid=appid, user_id=user_id).first_or_404()
+    achievements = Achievement.query.filter_by(game_id=game.id, user_id=user_id).all()
 
-    achievements = Achievement.query.filter_by(game_id=game.id, achieved=True).all()
-    return jsonify({
-        "achievements": [{"name": ach.name, "description": ach.description} for ach in achievements]
-    })
+    achievements_data = [{
+        'name': a.name,
+        'description': a.description,
+        'achieved': a.achieved,
+        'unlock_time': a.unlock_time.strftime("%Y-%m-%d %H:%M:%S") if a.unlock_time else 'No especificado'
+    } for a in achievements]
+
+    return jsonify({'achievements': achievements})
+
+
 
 @app.route('/check_games')
 def check_games():
@@ -249,14 +288,21 @@ def fetch_games():
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
+    # ✅ Si ya hay juegos en la BD, informar al frontend
+    if Game.query.filter_by(user_id=user.id).first():
+        return jsonify({"message": "Los juegos ya están en la base de datos.", "status": "done"})
+
     def fetch_data():
-        with app.app_context():  # 👈 Asegura el contexto de la app
+        with app.app_context():
             fetch_and_store_games(user)
 
     thread = Thread(target=fetch_data)
     thread.start()
 
-    return jsonify({"success": True})
+    return jsonify({"success": True, "status": "loading"})  # 🚨 Indicar al frontend que sigue cargando
+
+
+
 
 
 
