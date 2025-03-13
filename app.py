@@ -362,17 +362,17 @@ def check_games_status():
     if Game.query.filter_by(user_id=user.id).first():
         return jsonify({"status": "done", "progress": 100})  # La descarga ha terminado
     else:
-        return jsonify({"status": "loading", "progress": user.progress})  # Devuelve el progreso actual
-
+        return jsonify({"status": "loading", "progress": user.progress if hasattr(user, 'progress') else 0})  # La descarga aún está en progreso
+    
 # En app.py (nueva ruta)
 @app.route('/api/check_download_status')
-@login_required
 def check_download_status():
+    """Verifica si la descarga de juegos ha terminado."""
     user = current_user
     games_exist = Game.query.filter_by(user_id=user.id).first() is not None
     return jsonify({
         "download_complete": games_exist,
-        "last_updated": user.last_updated.isoformat() if user.last_updated else None
+        "progress": user.progress if hasattr(user, 'progress') else 0
     })
 
 # 🚀 EJECUTAR APP Y CREAR BD
