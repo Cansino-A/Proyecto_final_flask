@@ -23,23 +23,38 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        let progress = 0;
+        const progressBar = document.getElementById("progress-bar");
+        const statusMessage = document.getElementById("status-message");
+
+        // Función para verificar el estado de la descarga
+        function checkFetchStatus() {
+            fetch(`/api/check_games_status?user_id={{ user_id }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "done") {
+                        // Redirigir al dashboard cuando la descarga haya terminado
+                        window.location.href = "/dashboard";
+                    } else if (data.status === "loading") {
+                        // Actualizar la barra de progreso y el mensaje de estado
+                        progress += 10; // Simulación de progreso (puedes ajustar esto)
+                        if (progress > 100) progress = 100;
+                        progressBar.style.width = `${progress}%`;
+                        progressBar.textContent = `${progress}%`;
+                        statusMessage.textContent = `Descargando juegos... (${progress}%)`;
+
+                        // Volver a verificar el estado después de un tiempo
+                        setTimeout(checkFetchStatus, 3000); // Reintentar cada 3 segundos
+                    }
+                })
+                .catch(error => {
+                    console.error("Error verificando estado de carga:", error);
+                    setTimeout(checkFetchStatus, 5000);  // Reintentar en caso de error
+                });
+        }
+
+        // Iniciar la verificación del estado
         checkFetchStatus();
     });
-
-    function checkFetchStatus() {
-        fetch(`/api/check_games_status?user_id={{ user_id }}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "done") {
-                    window.location.href = "/dashboard";  // Redirige cuando termine
-                } else {
-                    setTimeout(checkFetchStatus, 3000); // Reintenta cada 3 segundos
-                }
-            })
-            .catch(error => {
-                console.error("Error verificando estado de carga:", error);
-                setTimeout(checkFetchStatus, 5000);  // Reintenta en caso de error
-            });
-    }
 </script>
 {% endblock %}

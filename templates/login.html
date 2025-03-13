@@ -11,10 +11,24 @@
                         <div class="mb-3">
                             <label for="username" class="form-label">Nombre de usuario:</label>
                             <input type="text" id="username" name="username" class="form-control" placeholder="Nombre de usuario" required>
-                        </div>
+                            {% if form.username.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>                        
                         <div class="mb-3">
                             <label for="password" class="form-label">Contraseña:</label>
                             <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+                            {% if form.password.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
                     </form>

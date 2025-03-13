@@ -12,19 +12,47 @@
                         <div class="mb-3">
                             <label for="username" class="form-label">Nombre de usuario:</label>
                             {{ form.username(class="form-control") }}
+                            {% if form.username.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="mb-3">
                             <label for="steam_id" class="form-label">Steam ID:</label>
                             {{ form.steam_id(class="form-control") }}
-                            <small class="text-muted">Ingresa tu ID de Steam, no tu nombre de usuario.</small>
+                            <small class="text-muted">Ingresa tu ID de Steam</small>
+                            {% if form.steam_id.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.steam_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label">Contraseña:</label>
                             {{ form.password(class="form-control") }}
+                            {% if form.password.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="mb-3">
                             <label for="confirm_password" class="form-label">Confirmar Contraseña:</label>
                             {{ form.confirm_password(class="form-control") }}
+                            {% if form.confirm_password.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.confirm_password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Registrarse</button>
                     </form>

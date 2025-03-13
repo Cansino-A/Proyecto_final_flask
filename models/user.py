@@ -3,15 +3,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from . import db  # Importa db desde __init__.py
 
 class User(db.Model, UserMixin):
-    __tablename__ = 'user'  # Nombre de la tabla
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     steam_id = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     last_updated = db.Column(db.DateTime, nullable=True)
-
-    # Relación con Game (ya definida en Game)
-    # Relación con Achievement (ya definida en Achievement)
+    progress = db.Column(db.Integer, default=0)  
+    is_fetching = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

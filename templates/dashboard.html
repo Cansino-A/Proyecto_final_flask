@@ -7,9 +7,7 @@
 
     <!-- Paginación superior -->
     <nav aria-label="Paginación superior" class="mb-4">
-        <ul class="pagination justify-content-center" id="pagination-top">
-            <!-- Los botones de paginación se generarán dinámicamente -->
-        </ul>
+        <ul class="pagination justify-content-center" id="pagination-top"></ul>
     </nav>
 
     <!-- Contenedor para los juegos -->
@@ -17,9 +15,7 @@
 
     <!-- Paginación inferior -->
     <nav aria-label="Paginación inferior" class="mt-4">
-        <ul class="pagination justify-content-center" id="pagination-bottom">
-            <!-- Los botones de paginación se generarán dinámicamente -->
-        </ul>
+        <ul class="pagination justify-content-center" id="pagination-bottom"></ul>
     </nav>
 </div>
 
@@ -30,17 +26,13 @@
 
     function loadGames(page) {
         fetch(`/dashboard?page=${page}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'  // Indicar que es una solicitud AJAX
-            }
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
         .then(data => {
-            // Limpiar el contenedor de juegos
             const gamesContainer = document.getElementById("games-container");
             gamesContainer.innerHTML = "";
 
-            // Mostrar los juegos
             data.games.forEach(game => {
                 const gameHtml = `
                     <div class="accordion-item mb-3">
