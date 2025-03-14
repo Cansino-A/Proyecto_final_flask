@@ -1,0 +1,59 @@
+from flask import render_template, redirect, url_for, flash
+from flask_login import login_user, logout_user
+from models import db
+from models.user import User
+from utils.steam_api import fetch_steam_username
+from utils.background_tasks import start_background_fetch
+from forms.registration_form import RegistrationForm
+from forms.login_form import LoginForm
+
+def register():
+    """Maneja el registro de nuevos usuarios."""
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # Verificar si el Steam ID ya está registrado
+        existing_user = User.query.filter_by(steam_id=form.steam_id.data).first()
+        if existing_user:
+            flash('Este Steam ID ya está registrado.', 'warning')
+            return redirect(url_for('register'))
+
+        # Obtener el nombre de usuario de Steam
+        steam_name = fetch_steam_username(form.steam_id.data)
+        if not steam_name:
+            flash('No se pudo obtener el nombre de Steam. Verifica tu ID de Steam.', 'danger')
+            return redirect(url_for('register'))
+
+        # Crear el nuevo usuario
+        user = User(username=steam_name, steam_id=form.steam_id.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+
+        # Iniciar sesión y redirigir
+        login_user(user, remember=True)
+        flash('Cuenta creada con éxito. Redirigiendo a tu biblioteca...', 'success')
+
+        # Iniciar la descarga de juegos en segundo plano
+        start_background_fetch(user.id)
+
+        return redirect(url_for('loading', user_id=user.id))
+
+    return render_template('register.html', form=form)
+
+def login():
+    """Maneja el inicio de sesión de usuarios."""
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user)
+            flash('Inicio de sesión exitoso.', 'success')
+            return redirect(url_for('dashboard'))
+        flash('Steam ID o contraseña incorrectos.', 'danger')
+    return render_template('login.html', form=form)
+
+def logout():
+    """Maneja el cierre de sesión de usuarios."""
+    logout_user()
+    flash('Sesión cerrada.', 'info')
+    return redirect(url_for('login'))
