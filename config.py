@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta  # Importar timedelta
+from datetime import timedelta
 
 class Config:
     # Clave secreta para la aplicación Flask
@@ -13,7 +13,7 @@ class Config:
     # Configuración de la sesión
     SESSION_COOKIE_NAME = 'my_session'
     SESSION_PERMANENT = False
-    REMEMBER_COOKIE_DURATION = timedelta(days=30)  # Ahora timedelta está definido
+    REMEMBER_COOKIE_DURATION = timedelta(days=30)
 
     # Clave API de Steam
     STEAM_API_KEY = "C89BEF3321862C5B2AA16A35B9BFC5C0"

@@ -5,11 +5,11 @@ from . import db  # Importa db desde __init__.py
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=False)  # Asegura que el nombre de usuario sea único
     steam_id = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     last_updated = db.Column(db.DateTime, nullable=True)
-    progress = db.Column(db.Integer, default=0)  
+    progress = db.Column(db.Integer, default=0)
     is_fetching = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):

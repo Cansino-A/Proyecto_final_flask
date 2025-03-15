@@ -4,17 +4,25 @@
 {% block content %}
 <div class="container">
     <!-- Barra de carga -->
-    <div id="loading-overlay" class="text-center mt-5" style="display: none;">
-        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
-        <p class="mt-3 text-muted">Descargando juegos...</p>
-        <div class="progress mt-2 mx-auto" style="width: 50%; height: 20px;">
-            <div id="dashboard-progress" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+    <div id="progress-bar-container" class="text-center mt-4">
+        <div class="progress" style="height: 20px;">
+            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%;">0%</div>
         </div>
+        <p id="progress-message" class="mt-2">Cargando juegos...</p>
     </div>
 
     <!-- Contenido principal -->
     <div id="main-content">
         <h2 class="text-center mt-3 mb-4">Tu Biblioteca de Steam</h2>
+
+        <!-- Información del usuario -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Información del Usuario</h5>
+                <p class="card-text">Nombre de Steam: <strong>{{ steam_name }}</strong></p>
+                <p class="card-text">Logros obtenidos: <strong id="total-achievements">{{ total_achievements }}</strong></p>
+            </div>
+        </div>
 
         <!-- Paginación superior -->
         <nav aria-label="Paginación superior" class="mb-4">
@@ -33,49 +41,46 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const loadingOverlay = document.getElementById("loading-overlay");
-        const mainContent = document.getElementById("main-content");
-        let currentPage = 1;
+        const progressBarContainer = document.getElementById("progress-bar-container");
+        const progressBar = document.getElementById("progress-bar");
+        const progressMessage = document.getElementById("progress-message");
+        const gamesContainer = document.getElementById("games-container");
+        const paginationTop = document.getElementById("pagination-top");
+        const paginationBottom = document.getElementById("pagination-bottom");
+        const totalAchievementsElement = document.getElementById("total-achievements");
 
-        // Función para verificar el estado de la descarga
-        function checkDownloadStatus() {
-            fetch("/api/check_download_status")
+        let currentPage = 1;  // Página actual
+        let totalPages = 1;   // Total de páginas
+        let isDownloading = false;  // Estado de la descarga
+
+        // Función para actualizar el número de logros obtenidos
+        function updateTotalAchievements() {
+            fetch("/api/total_achievements")
                 .then(response => response.json())
                 .then(data => {
-                    if (!data.download_complete) {
-                        loadingOverlay.style.display = "block";  // Mostrar barra de carga
-                        mainContent.style.display = "none";     // Ocultar contenido principal
-                        updateProgressBar();                    // Actualizar barra de progreso
-                        setTimeout(checkDownloadStatus, 3000);  // Verificar cada 3 segundos
-                    } else {
-                        loadingOverlay.style.display = "none";  // Ocultar barra de carga
-                        mainContent.style.display = "block";    // Mostrar contenido principal
-                        loadGames(currentPage);                 // Cargar juegos
+                    if (data.success) {
+                        totalAchievementsElement.textContent = data.total_achievements;
                     }
+                })
+                .catch(error => {
+                    console.error("Error actualizando logros obtenidos:", error);
                 });
         }
 
-        // Actualizar barra de progreso
-        function updateProgressBar() {
-            fetch("/api/check_games_status?user_id={{ user_id }}")
-                .then(response => response.json())
-                .then(data => {
-                    const progressBar = document.getElementById("dashboard-progress");
-                    progressBar.style.width = `${data.progress}%`;
-                    progressBar.textContent = `${data.progress}%`;
-                });
-        }
+        // Actualizar inmediatamente al cargar la página
+        updateTotalAchievements();
 
-        // Cargar juegos con paginación
+        // Función para cargar juegos con paginación
         function loadGames(page) {
             fetch(`/dashboard?page=${page}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(response => response.json())
             .then(data => {
-                const gamesContainer = document.getElementById("games-container");
+                // Limpiar el contenedor de juegos
                 gamesContainer.innerHTML = "";
 
+                // Añadir los juegos al contenedor
                 data.games.forEach(game => {
                     const gameHtml = `
                         <div class="accordion-item mb-3">
@@ -156,9 +161,16 @@
                     `;
                     gamesContainer.innerHTML += gameHtml;
                 });
+                
+                // Actualizar el número de logros obtenidos
+                totalAchievementsElement.textContent = data.total_achievements;
 
-                updatePagination(data.total_pages, data.current_page);
-                currentPage = data.current_page;
+                // Actualizar paginación
+                totalPages = data.total_pages;
+                updatePagination(totalPages, page);
+            })
+            .catch(error => {
+                console.error("Error cargando juegos:", error);
             });
         }
 
@@ -171,7 +183,16 @@
                 for (let i = 1; i <= totalPages; i++) {
                     const li = document.createElement("li");
                     li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                    li.innerHTML = `<a class="page-link" href="#" onclick="loadGames(${i})">${i}</a>`;
+                    const link = document.createElement("a");
+                    link.className = "page-link";
+                    link.href = "#";
+                    link.textContent = i;
+                    link.onclick = (event) => {
+                        event.preventDefault();  // Prevenir el comportamiento predeterminado del enlace
+                        currentPage = i;        // Actualizar la página actual
+                        loadGames(currentPage); // Cargar los juegos de la página seleccionada
+                    };
+                    li.appendChild(link);
                     pagination.appendChild(li);
                 }
             };
@@ -180,15 +201,31 @@
             updatePaginator("pagination-bottom");
         }
 
-        // Iniciar verificación de estado
-        checkDownloadStatus();
+        // Cargar la primera página al inicio
+        loadGames(currentPage);
 
-        // Actualización automática cada 5 segundos
+        // Verificar el estado de la descarga cada 3 segundos
         setInterval(() => {
-            if (mainContent.style.display !== "none") {
-                loadGames(currentPage);
-            }
-        }, 5000);
+            fetch("/api/check_download_status")
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.download_complete) {
+                        // Actualizar la barra de progreso
+                        progressBar.style.width = `${data.progress}%`;
+                        progressBar.textContent = `${data.progress}%`;
+                        progressMessage.textContent = `Cargando juegos... (${data.progress}%)`;
+
+                        // Recargar los juegos para mostrar los nuevos
+                        loadGames(currentPage);
+                    } else {
+                        // Ocultar la barra de progreso
+                        progressBarContainer.style.display = "none";
+                    }
+                })
+                .catch(error => {
+                    console.error("Error verificando estado de descarga:", error);
+                });
+        }, 3000);  // Verificar cada 3 segundos
     });
 </script>
 {% endblock %}
