@@ -17,3 +17,4 @@ class Config:
 
     # Clave API de Steam
     STEAM_API_KEY = "C89BEF3321862C5B2AA16A35B9BFC5C0"
+    RIOT_API_KEY = "RGAPI-1159207e-648b-4eaf-8846-ff3feaa49772" #Hay que cambiarla cada 24 horas Expires: Sun, Mar 16th, 2025 @ 4:37pm (PT)

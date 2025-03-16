@@ -3,7 +3,11 @@ from flask_login import login_required, current_user
 from models import db
 from models.user import User
 from models.game import Game
-from models.achievement import Achievement 
+from models.achievement import Achievement
+from utils.riot_api import get_puuid, get_match_history, get_match_details
+
+
+
 
 def api_games():
     """API para obtener los juegos del usuario."""
@@ -20,6 +24,7 @@ def api_games():
             "name": game.name,
             "playtime": game.playtime,
             "image": game.image,
+            "platform": game.platform,  # Añadir la plataforma
             "achieved_achievements": [
                 {
                     "name": a.name,
@@ -108,3 +113,30 @@ def total_achievements():
             "success": False,
             "error": str(e)
         })
+    
+@login_required     
+def riot_summoner():
+    """ Obtiene el historial de partidas de un jugador """
+    game_name = request.args.get("gameName")
+    tag_line = request.args.get("tagLine")
+
+    if not game_name or not tag_line:
+        return jsonify({"error": "Se requiere gameName y tagLine"}), 400
+
+    puuid = get_puuid(game_name, tag_line)
+    if isinstance(puuid, dict):  # Error en la respuesta
+        return jsonify(puuid), 400
+
+    match_history = get_match_history(puuid)
+    return jsonify({"puuid": puuid, "matches": match_history})
+
+@login_required   
+def riot_match_details(match_id):
+    """ Obtiene detalles de una partida específica """
+    puuid = request.args.get("puuid")
+
+    if not puuid:
+        return jsonify({"error": "Se requiere el PUUID"}), 400
+
+    match_details = get_match_details(match_id, puuid)
+    return jsonify(match_details)

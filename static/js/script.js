@@ -1,1 +1,0 @@
-console.log('Plataforma de seguimiento cargada');

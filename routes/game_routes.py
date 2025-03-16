@@ -3,11 +3,21 @@ from flask_login import login_required, current_user
 from models import db
 from models.game import Game
 from models.achievement import Achievement
-from utils.steam_api import fetch_steam_username  # Importar fetch_steam_username
+from utils.steam_api import fetch_steam_username  
 
 @login_required
 def dashboard():
-    """Muestra el dashboard con los juegos del usuario."""
+    """Muestra el dashboard general con todos los juegos."""
+    steam_games = []
+
+    if current_user.steam_id:
+        steam_games = Game.query.filter_by(user_id=current_user.id, platform='Steam').all()
+
+    return render_template('dashboard.html', steam_games=steam_games)
+
+@login_required
+def dashboard_steam():
+    """Muestra el dashboard específico para juegos de Steam."""
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
 
@@ -21,7 +31,7 @@ def dashboard():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         page = request.args.get('page', 1, type=int)
         per_page = 10  # Número de juegos por página
-        games_query = Game.query.filter_by(user_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
+        games_query = Game.query.filter_by(user_id=current_user.id, platform='Steam').paginate(page=page, per_page=per_page, error_out=False)
         games = [
             {
                 "id": game.id,
@@ -52,11 +62,12 @@ def dashboard():
         })
 
     # Si no es una solicitud AJAX, renderizar el template
-    return render_template('dashboard.html', 
+    return render_template('dashboard_steam.html', 
                            user_id=current_user.id, 
                            steam_name=steam_name, 
                            total_achievements=total_achievements)
 
-def loading(user_id):
-    """Muestra la pantalla de carga mientras se descargan los juegos."""
-    return render_template('loading.html', user_id=user_id)
+
+@login_required
+def dashboard_riot():
+    return render_template("dashboard_riot.html")

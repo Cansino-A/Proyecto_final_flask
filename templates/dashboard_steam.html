@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Juegos de Steam - GameTrackr{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Barra de carga (solo visible si se está descargando) -->
+    {% if current_user.is_fetching %}
+        <div id="progress-bar-container" class="text-center mt-4">
+            <div class="progress" style="height: 20px;">
+                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%;">0%</div>
+            </div>
+            <p id="progress-message" class="mt-2">Cargando juegos...</p>
+        </div>
+    {% endif %}
+
+    <!-- Aviso si no hay Steam ID vinculado -->
+    {% if not current_user.steam_id %}
+        <div class="alert alert-warning text-center">
+            <strong>¡Atención!</strong> No has vinculado tu cuenta de Steam. 
+            <a href="{{ url_for('configuration') }}">Vincula tu Steam ID aquí</a>.
+        </div>
+    {% endif %}
+
+    <!-- Contenido principal -->
+    <div id="main-content">
+        <h2 class="text-center mt-3 mb-4">Juegos de Steam</h2>
+
+        <!-- Información del usuario -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Información del Usuario</h5>
+                <p class="card-text">Nombre de Steam: <strong>{{ steam_name }}</strong></p>
+                <p class="card-text">Logros obtenidos: <strong id="total-achievements">{{ total_achievements }}</strong></p>
+            </div>
+        </div>
+
+        <!-- Paginación superior -->
+        <nav aria-label="Paginación superior" class="mb-4">
+            <ul class="pagination justify-content-center" id="pagination-top"></ul>
+        </nav>
+
+        <!-- Contenedor para los juegos -->
+        <div id="games-container" class="accordion"></div>
+
+        <!-- Paginación inferior -->
+        <nav aria-label="Paginación inferior" class="mt-4">
+            <ul class="pagination justify-content-center" id="pagination-bottom"></ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Referencia al archivo JavaScript -->
+<script src="{{ url_for('static', filename='js/dashboard_steam.js') }}"></script>
+{% endblock %}

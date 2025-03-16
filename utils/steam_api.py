@@ -14,7 +14,7 @@ def fetch_steam_username(steam_id, steam_api_key):
             return data["response"]["players"][0]["personaname"]
     return None
 
-def fetch_game_name(appid):
+def fetch_steam_game_name(appid):
     """Obtiene el nombre de un juego desde la API de Steam."""
     url = f"https://store.steampowered.com/api/appdetails?appids={appid}"
     response = requests.get(url)
@@ -25,7 +25,7 @@ def fetch_game_name(appid):
             return data[str(appid)]["data"]["name"]
     return "Unknown Game"
 
-def fetch_achievement_names(appid):
+def fetch_steam_achievement_names(appid):
     """Obtiene los nombres legibles de los logros desde la API de Steam."""
     try:
         url = f"http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key={current_app.config['STEAM_API_KEY']}&appid={appid}"
@@ -35,14 +35,20 @@ def fetch_achievement_names(appid):
             data = response.json()
             if "game" in data and "availableGameStats" in data["game"]:
                 achievements = data["game"]["availableGameStats"]["achievements"]
-                return {ach["name"]: ach["displayName"] for ach in achievements}
-        #current_app.logger.error(f"No se pudieron obtener los nombres de los logros para el juego {appid}.")
+                if achievements:  # Verificar si hay logros
+                    return {ach["name"]: ach["displayName"] for ach in achievements}
+                else:
+                    current_app.logger.info(f"El juego {appid} no tiene logros.")
+            else:
+                current_app.logger.error(f"No se encontraron logros para el juego {appid}.")
+        else:
+            current_app.logger.error(f"Error al obtener logros para el juego {appid}: {response.status_code}")
         return {}
     except Exception as e:
-        #current_app.logger.error(f"Error en fetch_achievement_names para el juego {appid}: {str(e)}")
+        current_app.logger.error(f"Error en fetch_steam_achievement_names para el juego {appid}: {str(e)}")
         return {}
 
-def fetch_and_store_games(user, steam_api_key):
+def fetch_and_store_steam_games(user, steam_api_key):
     """Descarga y almacena juegos de Steam para un usuario."""
     try:
         url = f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={steam_api_key}&steamid={user.steam_id}"
@@ -50,33 +56,31 @@ def fetch_and_store_games(user, steam_api_key):
 
         if response.status_code == 200 and "games" in response.json().get("response", {}):
             games_data = response.json()["response"]["games"]
-            _process_games(user, games_data)
+            _process_steam_games(user, games_data)
 
             # Actualizar el estado de la descarga
             user.progress = 100
             user.last_updated = datetime.utcnow()
             db.session.commit()
-        #else:
-            #current_app.logger.error(f"Error al obtener juegos para el usuario {user.id}: {response.status_code}")
     except Exception as e:
-        #current_app.logger.error(f"Error en fetch_and_store_games para el usuario {user.id}: {str(e)}")
         user.progress = 0
         user.is_fetching = False
         db.session.commit()
 
-def _process_games(user, games_data):
+def _process_steam_games(user, games_data):
     """Procesa la lista de juegos y los almacena en la base de datos."""
     total_games = len(games_data)
     for index, game in enumerate(games_data):
         if not Game.query.filter_by(appid=game["appid"], user_id=user.id).first():
             # Obtener el nombre del juego
-            game_name = fetch_game_name(game["appid"])
+            game_name = fetch_steam_game_name(game["appid"])
 
             new_game = Game(
                 appid=game["appid"],
                 name=game_name,
                 playtime=game.get("playtime_forever", 0) // 60,
                 image=f"https://cdn.cloudflare.steamstatic.com/steam/apps/{game['appid']}/capsule_184x69.jpg",
+                platform='Steam',  # Asegúrate de establecer la plataforma
                 user_id=user.id
             )
             db.session.add(new_game)
@@ -84,7 +88,7 @@ def _process_games(user, games_data):
 
             # Intentar obtener logros para todos los juegos
             try:
-                _fetch_achievements(user, game["appid"])
+                _fetch_steam_achievements(user, game["appid"])
             except Exception as e:
                 current_app.logger.error(f"Error al obtener logros para el juego {game_name} (ID: {game['appid']}): {str(e)}")
             
@@ -96,11 +100,11 @@ def _process_games(user, games_data):
     user.progress = 100
     db.session.commit()
 
-def _fetch_achievements(user, appid):
+def _fetch_steam_achievements(user, appid):
     """Obtiene y almacena logros para un juego específico."""
     try:
         # Obtener los nombres legibles de los logros
-        achievement_names = fetch_achievement_names(appid)
+        achievement_names = fetch_steam_achievement_names(appid)
         
         # Obtener los logros del usuario
         url = f"http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid={appid}&key={current_app.config['STEAM_API_KEY']}&steamid={user.steam_id}"
@@ -111,24 +115,17 @@ def _fetch_achievements(user, appid):
             if "playerstats" in data and "achievements" in data["playerstats"]:
                 achievements_data = data["playerstats"]["achievements"]
                 if achievements_data:  # Verificar si hay logros
-                    _process_achievements(user, appid, achievements_data, achievement_names)
-                else:
-                    current_app.logger.info(f"El juego {appid} no tiene logros o no están disponibles.")
-            else:
-                current_app.logger.error(f"No se encontraron logros para el juego {appid}.")
-        else:
-            current_app.logger.error(f"Error al obtener logros para el juego {appid}: {response.status_code}")
+                    _process_steam_achievements(user, appid, achievements_data, achievement_names)
     except Exception as e:
-        current_app.logger.error(f"Error en _fetch_achievements para el juego {appid}: {str(e)}")
+        current_app.logger.error(f"Error en _fetch_steam_achievements para el juego {appid}: {str(e)}")
 
-def _process_achievements(user, appid, achievements_data, achievement_names):
+def _process_steam_achievements(user, appid, achievements_data, achievement_names):
     """Procesa y almacena logros en la base de datos."""
     game = Game.query.filter_by(appid=appid, user_id=user.id).first()
     if not game:
         return
 
     for ach in achievements_data:
-        # Obtener el nombre legible del logro
         display_name = achievement_names.get(ach["apiname"], ach["apiname"])
         
         achievement = Achievement.query.filter_by(

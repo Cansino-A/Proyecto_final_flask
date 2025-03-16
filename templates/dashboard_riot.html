@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Riot Games - GameTrackr{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Dashboard de Riot Games (League of Legends)</h2>
+
+    <!-- Buscar jugador -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Buscar Jugador</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" id="riot-gameName" class="form-control" placeholder="Nombre del invocador">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" id="riot-tagLine" class="form-control" placeholder="Tag (ej: EUW)">
+                </div>
+                <div class="col-md-2">
+                    <button id="riot-search-button" class="btn btn-primary w-100">Buscar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del jugador -->
+    <div id="riot-summoner-info" class="mt-4">
+        <!-- Aquí se mostrará la información del jugador y su historial de partidas -->
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard_riot.js') }}"></script>
+{% endblock %}
