@@ -7,6 +7,7 @@ from routes.auth_routes import register, login, logout, configuration, update_us
 from routes.game_routes import dashboard, dashboard_steam, dashboard_riot
 from routes.api_routes import api_games, get_achievements, check_games_status, check_download_status, total_achievements, riot_summoner, riot_match_details, summoner_info
 from utils.background_tasks import start_background_fetch
+import logging
 
 
 
@@ -14,6 +15,7 @@ from utils.background_tasks import start_background_fetch
 app = Flask(__name__)
 app.config.from_object('config.Config')
 socketio = SocketIO(app)
+logging.basicConfig(level=logging.ERROR)
 
 # Inicializar la base de datos
 db.init_app(app)

@@ -137,6 +137,10 @@
             text-align: center;
         }
     </style>
+
+    <!-- Precarga del video usando <link> -->
+    <link rel="preload" as="video" href="{{ url_for('static', filename='videos/video2.mp4') }}">
+    <link rel="preload" as="video" href="{{ url_for('static', filename='videos/video3.mp4') }}">
 </head>
 <body>
     <!-- Barra de navegación -->
@@ -151,9 +155,6 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <span class="nav-link welcome-text">Bienvenido, {{ current_user.username }}</span>
-                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('index') }}">
                                 <i class="fas fa-home me-1"></i>Inicio
@@ -170,7 +171,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('configuration') }}">
-                                <i class="fas fa-user me-1"></i>Perfil
+                                <i class="fas fa-user me-1"></i>{{ current_user.username }}
                             </a>
                         </li>
                         <li class="nav-item">

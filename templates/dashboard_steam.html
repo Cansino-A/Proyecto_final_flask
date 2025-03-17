@@ -2,7 +2,10 @@
 {% block title %}Juegos de Steam - GameTrackr{% endblock %}
 
 {% block content %}
+
 <div class="container">
+    <img src="{{ url_for('static', filename='images/backgrounds/image1.jpg') }}" alt="Background Image" id="image-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+
     <!-- Barra de carga (solo visible si se está descargando) -->
     {% if current_user.is_fetching %}
         <div id="progress-bar-container" class="text-center mt-4">
