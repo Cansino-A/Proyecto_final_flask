@@ -41,3 +41,15 @@ h1, h2 {
 .navbar {
     background-color: #212529 !important; /* Un tono más claro que el fondo oscuro */
 }
+
+.btn-custom-blue {
+    background-color: #007bff; /* Azul base */
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.btn-custom-blue:hover {
+    background-color: #0056b3; /* Azul más oscuro */
+    color: white;
+}

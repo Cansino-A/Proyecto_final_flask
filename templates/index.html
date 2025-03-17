@@ -3,19 +3,36 @@
 
 {% block content %}
 <div class="container text-center mt-5">
-    <h1 class="display-4">Bienvenido a GameTrackr 🎮</h1>
-    <p class="lead">Tu plataforma para gestionar y seguir tus logros en Steam.</p>
+
+    <!-- Video de fondo -->
+    <video autoplay muted loop id="video-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+        <source src="{{ url_for('static', filename='videos/video3.mp4') }}" type="video/mp4">
+        Tu navegador no soporta videos HTML5.
+    </video>
+
+    <h1 class="display-4 fw-bold text-white">
+        Bienvenido a <i class="fas fa-gamepad me-2"></i>GameTrackr 🎮
+    </h1>
+    <p class="lead text-light">
+        La mejor manera de rastrear tus logros, gestionar tus juegos y llevar tu experiencia de gaming al siguiente nivel.
+    </p>
+
     <div class="row mt-5">
         <div class="col-md-6 offset-md-3">
-            <div class="card shadow">
+            <div class="card shadow-lg border-0">
                 <div class="card-body">
-                    <h2 class="card-title">¿Qué es GameTrackr?</h2>
+                    <h2 class="card-title text-primary">¿Qué es GameTrackr?</h2>
                     <p class="card-text">
-                        GameTrackr es una herramienta que te permite ver y gestionar tus juegos de Steam, 
-                        así como seguir tu progreso en los logros de cada juego.
+                        GameTrackr es la herramienta definitiva para los gamers. Sincroniza tus juegos de Steam, 
+                        sigue tu progreso en League of Legends y desbloquea logros como nunca antes.
                     </p>
-                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Regístrate</a>
-                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Iniciar Sesión</a>
+                    <p class="card-text">
+                        📊 Monitorea tu evolución | 🏆 Desbloquea logros | 🎯 Optimiza tu experiencia de juego
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Regístrate</a>
+                        <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">Iniciar Sesión</a>
+                    </div>
                 </div>
             </div>
         </div>
