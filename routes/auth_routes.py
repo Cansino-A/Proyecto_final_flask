@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, flash, request, current_app
+from flask import render_template, redirect, url_for, flash, request, jsonify, get_flashed_messages
 from forms.login_form import LoginForm
 from flask_login import login_required, current_user, login_user, logout_user
 from models import db
@@ -25,10 +25,11 @@ def register():
 
         # Iniciar sesión y redirigir
         login_user(user, remember=True)
-        flash('Cuenta creada con éxito. Redirigiendo a tu biblioteca...', 'success')
-        return redirect(url_for('dashboard'))
-
+        flash('Cuenta creada con éxito.', 'success')
+        return redirect(url_for('index'))
     return render_template('register.html', form=form)
+
+from flask import flash
 
 def login():
     """Maneja el inicio de sesión de usuarios."""
@@ -38,15 +39,15 @@ def login():
         if user and user.check_password(form.password.data):
             login_user(user)
             flash('Inicio de sesión exitoso.', 'success')
-            return redirect(url_for('dashboard'))
-        flash('Steam ID o contraseña incorrectos.', 'danger')
+            return redirect(url_for('index'))
+        flash('Nombre de usuario o contraseña incorrectos.', 'danger')
     return render_template('login.html', form=form)
 
 def logout():
     """Maneja el cierre de sesión de usuarios."""
     logout_user()
-    flash('Sesión cerrada.', 'info')
-    return redirect(url_for('login'))
+    flash('Sesión cerrada correctamente.', 'info')
+    return redirect(url_for('index'))
 
 @login_required
 def configuration():

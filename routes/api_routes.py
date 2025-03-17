@@ -4,7 +4,7 @@ from models import db
 from models.user import User
 from models.game import Game
 from models.achievement import Achievement
-from utils.riot_api import get_puuid, get_match_history, get_match_details
+from utils.riot_api import get_puuid, get_match_history, get_match_details, get_summoner_info, get_ranked_info
 
 
 
@@ -140,3 +140,32 @@ def riot_match_details(match_id):
 
     match_details = get_match_details(match_id, puuid)
     return jsonify(match_details)
+
+@login_required
+def summoner_info():
+    """Obtiene información básica del invocador."""
+    puuid = request.args.get("puuid")
+    if not puuid:
+        return jsonify({"error": "Se requiere el PUUID"}), 400
+
+    try:
+        # Obtener información básica del invocador
+        summoner_info = get_summoner_info(puuid)
+        if "error" in summoner_info:
+            return jsonify(summoner_info), 400
+
+        # Obtener información de clasificación
+        ranked_info = get_ranked_info(summoner_info["id"])
+        if "error" in ranked_info:
+            ranked_info = "No clasificado"
+
+        # Imprimir la respuesta para depuración
+        print("Respuesta de summoner_info:", summoner_info)
+        print("Respuesta de ranked_info:", ranked_info)
+
+        return jsonify({
+            "summonerLevel": summoner_info.get("summonerLevel", "Desconocido"),
+            "rankedInfo": ranked_info
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

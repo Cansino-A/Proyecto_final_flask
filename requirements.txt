@@ -13,3 +13,4 @@ greenlet==3.0.1
 # Instala las dependencias      -   pip install -r requirements.txt
 # Verifica la instalación       -   pip list
 # Para ejecutar la aplicación   -   python app.py
+

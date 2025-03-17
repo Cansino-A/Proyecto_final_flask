@@ -5,7 +5,7 @@ from models import db
 from models.user import User
 from routes.auth_routes import register, login, logout, configuration, update_username, update_password, link_steam
 from routes.game_routes import dashboard, dashboard_steam, dashboard_riot
-from routes.api_routes import api_games, get_achievements, check_games_status, check_download_status, total_achievements, riot_summoner, riot_match_details
+from routes.api_routes import api_games, get_achievements, check_games_status, check_download_status, total_achievements, riot_summoner, riot_match_details, summoner_info
 from utils.background_tasks import start_background_fetch
 
 
@@ -45,14 +45,17 @@ app.route('/dashboard')(dashboard)
 app.route('/dashboard/steam')(dashboard_steam)
 app.route('/dashboard/riot')(dashboard_riot)
 
-# Registrar rutas de la API
+# Registrar rutas de Steam
 app.route('/api/games')(api_games)
 app.route('/api/achievements/<int:appid>')(get_achievements)
 app.route('/api/check_games_status')(check_games_status)  
 app.route('/api/check_download_status')(check_download_status)
 app.route('/api/total_achievements')(total_achievements)
+
+# Registrar rutas de Riot
 app.route('/api/riot/summoner')(riot_summoner)
-app.route('/api/riot/match/<match_id>')(riot_match_details) 
+app.route('/api/riot/match/<match_id>')(riot_match_details)
+app.route('/api/riot/summoner-info')(summoner_info) 
 
 # Crear la base de datos al iniciar la aplicación
 with app.app_context(): 

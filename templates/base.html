@@ -6,94 +6,211 @@
     <title>{% block title %}GameTrackr{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        html, body {
-            height: 100%; /* Asegura que el html y body ocupen toda la altura */
-            margin: 0;
-        }
+        /* Estilos personalizados */
         body {
+            background-color: #1a1a1a; /* Fondo oscuro */
+            color: #ffffff; /* Texto blanco */
             display: flex;
-            flex-direction: column; /* Organiza el contenido en columna */
-            background-color: #f8f9fa;
+            flex-direction: column;
+            min-height: 100vh; /* Asegura que el body ocupe al menos toda la altura de la ventana */
         }
+
         .navbar {
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: #212529 !important; /* Fondo oscuro para el header */
+            color: #ffffff !important; /* Texto blanco */
         }
+
+        .navbar-brand, .nav-link {
+            color: #ffffff !important; /* Texto blanco para el logo y los enlaces */
+        }
+
+        .card {
+            background-color: #2d2d2d; /* Fondo oscuro para las tarjetas */
+            color: #ffffff; /* Texto blanco en las tarjetas */
+            border: 1px solid #444; /* Borde más oscuro */
+        }
+
+        .card-body {
+            color: #ffffff; /* Texto blanco en el cuerpo de la tarjeta */
+        }
+
+        .card-title {
+            color: #ffffff; /* Texto blanco para los títulos */
+        }
+
+        .card-text {
+            color: #ffffff; /* Texto blanco para el contenido */
+        }
+
         .footer {
-            background-color: #343a40;
-            color: white;
+            background-color: #343a40; /* Fondo oscuro para el footer */
+            color: #ffffff; /* Texto blanco */
             padding: 20px 0;
             margin-top: auto; /* Empuja el footer hacia abajo */
         }
-        .accordion-button {
-            background-color: #f8f9fa;
+
+        .main-content {
+            flex: 1; /* Hace que el contenido principal ocupe el espacio restante */
+            margin-bottom: 2rem; /* Espacio entre el contenido y el footer */
         }
-        .accordion-button:not(.collapsed) {
-            background-color: #e9ecef;
+
+        /* Estilos para el texto "Bienvenido, usuario" */
+        .welcome-text {
+            cursor: default; /* Evita que el cursor cambie a pointer */
+            margin-right: 20px; /* Separa "Bienvenido, usuario" del botón de inicio */
         }
-        .list-group-item {
-            border: none;
-            border-bottom: 1px solid #eee;
+
+        .welcome-text:hover {
+            transform: none !important; /* Desactiva el efecto hover */
+            color: white !important; /* Mantiene el color blanco */
+        }
+
+        /* Estilos para los enlaces del navbar */
+        .nav-link {
+            margin-right: 20px; /* Separa los elementos del header */
+        }
+
+        .nav-link:hover {
+            transform: scale(1.1); /* Aumentar tamaño */
+            color: #0d6efd !important; /* Cambiar color al azul */
+            transition: transform 0.2s, color 0.2s; /* Transición suave */
+        }
+
+        /* Estilos para los elementos del desplegable */
+        .dropdown-item {
+            font-size: 1rem; /* Tamaño del texto */
+            padding: 0.5rem 1rem; /* Espaciado interno */
+            white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+        }
+
+        .dropdown-item:hover {
+            transform: scale(1.05); /* Aumentar tamaño */
+            color: #0d6efd !important; /* Cambiar color al azul */
+            transition: transform 0.2s, color 0.2s; /* Transición suave */
+            background-color: transparent !important; /* Fondo transparente */
+        }
+
+        /* Estilos para los mensajes flash */
+        .alert-success {
+            background-color: #28a745; /* Verde para éxito */
+            color: white;
+        }
+
+        .alert-danger {
+            background-color: #dc3545; /* Rojo para errores */
+            color: white;
+        }
+
+        .alert-warning {
+            background-color: #ffc107; /* Amarillo para advertencias */
+            color: black;
+        }
+
+        .alert-info {
+            background-color: #17a2b8; /* Azul para información */
+            color: white;
+        }
+
+        /* Estilos para el título principal */
+        h1.display-4 {
+            color: white; /* Título en blanco */
+            font-size: 3rem; /* Tamaño grande */
+            font-weight: bold; /* Negrita */
+            margin-bottom: 1rem; /* Espaciado inferior */
+        }
+
+        h2.card-title {
+            color: white; /* Títulos de tarjetas en blanco */
+            font-size: 2rem; /* Tamaño grande */
+            font-weight: bold; /* Negrita */
+        }
+
+        /* Estilos para el aviso de "No tienes vinculado Steam ID" */
+        .steam-warning {
+            background-color: #ffc107; /* Fondo amarillo */
+            color: black; /* Texto negro */
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <!-- Barra de navegación -->
-    <!-- base.html -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('index') }}">
-            <i class="fas fa-gamepad me-2"></i>GameTrackr 🎮
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-link">Bienvenido, {{ current_user.username }}</span>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-home me-1"></i>Mis Juegos
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Todos los Juegos</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard_steam') }}">Juegos de Steam</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard_riot') }}">Riot Games</a></li>
-
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('configuration') }}">
-                            <i class="fas fa-cog me-1"></i>Configuración
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
-                            <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">
-                            <i class="fas fa-user-plus me-1"></i>Registrarse
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-gamepad me-2"></i>GameTrackr 🎮
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="nav-link welcome-text">Bienvenido, {{ current_user.username }}</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                                <i class="fas fa-home me-1"></i>Inicio
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-gamepad me-1"></i>Plataformas
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown" style="background-color: #212529;">
+                                <li><a class="dropdown-item text-white" href="{{ url_for('dashboard_steam') }}">Steam</a></li>
+                                <li><a class="dropdown-item text-white" href="{{ url_for('dashboard_riot') }}">Riot Games</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('configuration') }}">
+                                <i class="fas fa-user me-1"></i>Perfil
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="fas fa-user-plus me-1"></i>Registrarse
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
+    </nav>
+
+    <!-- Contenedor de notificaciones -->
+    <div id="notification" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
     </div>
-</nav>
 
     <!-- Contenido principal -->
-    <div class="container mt-4 flex-grow-1"> <!-- flex-grow-1 para que el contenido ocupe el espacio restante -->
+    <div class="container mt-4 main-content">
         {% block content %}{% endblock %}
     </div>
 
@@ -109,6 +226,22 @@
         </div>
     </footer>
 
+    <!-- Scripts de JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Cerrar automáticamente los mensajes flash después de 2 segundos
+        document.addEventListener("DOMContentLoaded", function() {
+            const alerts = document.querySelectorAll(".alert");
+            alerts.forEach(alert => {
+                if (!alert.classList.contains("steam-warning")) { // No cerrar el aviso de Steam ID
+                    setTimeout(() => {
+                        alert.classList.remove("show");
+                        alert.classList.add("fade");
+                        setTimeout(() => alert.remove(), 150); // Elimina el mensaje después de la animación
+                    }, 2000); // 2 segundos
+                }
+            });
+        });
+    </script>
 </body>
 </html>

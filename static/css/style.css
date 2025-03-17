@@ -7,3 +7,37 @@ h1, h2 {
 .table th, .table td {
     vertical-align: middle;
 }
+
+/* Añade esto en tu archivo CSS o dentro de <style> en base.html */
+.card {
+    height: auto; /* Ajusta la altura automáticamente */
+    min-height: 150px; /* Establece una altura mínima */
+    padding: 1rem; /* Reduce el espaciado interno */
+}
+
+.card h5 {
+    font-size: 1.1rem; /* Reduce el tamaño del título */
+}
+
+.card p {
+    font-size: 0.9rem; /* Reduce el tamaño del texto */
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centra el contenido verticalmente */
+    height: 100%; /* Asegura que la tarjeta ocupe todo el espacio disponible */
+}
+
+.card-title {
+    margin-bottom: 0.5rem; /* Reduce el margen inferior del título */
+}
+
+.card-text {
+    margin-bottom: 0.25rem; /* Reduce el margen inferior del texto */
+}
+
+.navbar {
+    background-color: #212529 !important; /* Un tono más claro que el fondo oscuro */
+}
