@@ -6,141 +6,11 @@
     <title>{% block title %}GameTrackr{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        /* Estilos personalizados */
-        body {
-            background-color: #1a1a1a; /* Fondo oscuro */
-            color: #ffffff; /* Texto blanco */
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh; /* Asegura que el body ocupe al menos toda la altura de la ventana */
-        }
-
-        .navbar {
-            background-color: #212529 !important; /* Fondo oscuro para el header */
-            color: #ffffff !important; /* Texto blanco */
-        }
-
-        .navbar-brand, .nav-link {
-            color: #ffffff !important; /* Texto blanco para el logo y los enlaces */
-        }
-
-        .card {
-            background-color: #2d2d2d; /* Fondo oscuro para las tarjetas */
-            color: #ffffff; /* Texto blanco en las tarjetas */
-            border: 1px solid #444; /* Borde más oscuro */
-        }
-
-        .card-body {
-            color: #ffffff; /* Texto blanco en el cuerpo de la tarjeta */
-        }
-
-        .card-title {
-            color: #ffffff; /* Texto blanco para los títulos */
-        }
-
-        .card-text {
-            color: #ffffff; /* Texto blanco para el contenido */
-        }
-
-        .footer {
-            background-color: #343a40; /* Fondo oscuro para el footer */
-            color: #ffffff; /* Texto blanco */
-            padding: 20px 0;
-            margin-top: auto; /* Empuja el footer hacia abajo */
-        }
-
-        .main-content {
-            flex: 1; /* Hace que el contenido principal ocupe el espacio restante */
-            margin-bottom: 2rem; /* Espacio entre el contenido y el footer */
-        }
-
-        /* Estilos para el texto "Bienvenido, usuario" */
-        .welcome-text {
-            cursor: default; /* Evita que el cursor cambie a pointer */
-            margin-right: 20px; /* Separa "Bienvenido, usuario" del botón de inicio */
-        }
-
-        .welcome-text:hover {
-            transform: none !important; /* Desactiva el efecto hover */
-            color: white !important; /* Mantiene el color blanco */
-        }
-
-        /* Estilos para los enlaces del navbar */
-        .nav-link {
-            margin-right: 20px; /* Separa los elementos del header */
-        }
-
-        .nav-link:hover {
-            transform: scale(1.1); /* Aumentar tamaño */
-            color: #0d6efd !important; /* Cambiar color al azul */
-            transition: transform 0.2s, color 0.2s; /* Transición suave */
-        }
-
-        /* Estilos para los elementos del desplegable */
-        .dropdown-item {
-            font-size: 1rem; /* Tamaño del texto */
-            padding: 0.5rem 1rem; /* Espaciado interno */
-            white-space: nowrap; /* Evita que el texto se divida en varias líneas */
-        }
-
-        .dropdown-item:hover {
-            transform: scale(1.05); /* Aumentar tamaño */
-            color: #0d6efd !important; /* Cambiar color al azul */
-            transition: transform 0.2s, color 0.2s; /* Transición suave */
-            background-color: transparent !important; /* Fondo transparente */
-        }
-
-        /* Estilos para los mensajes flash */
-        .alert-success {
-            background-color: #28a745; /* Verde para éxito */
-            color: white;
-        }
-
-        .alert-danger {
-            background-color: #dc3545; /* Rojo para errores */
-            color: white;
-        }
-
-        .alert-warning {
-            background-color: #ffc107; /* Amarillo para advertencias */
-            color: black;
-        }
-
-        .alert-info {
-            background-color: #17a2b8; /* Azul para información */
-            color: white;
-        }
-
-        /* Estilos para el título principal */
-        h1.display-4 {
-            color: white; /* Título en blanco */
-            font-size: 3rem; /* Tamaño grande */
-            font-weight: bold; /* Negrita */
-            margin-bottom: 1rem; /* Espaciado inferior */
-        }
-
-        h2.card-title {
-            color: white; /* Títulos de tarjetas en blanco */
-            font-size: 2rem; /* Tamaño grande */
-            font-weight: bold; /* Negrita */
-        }
-
-        /* Estilos para el aviso de "No tienes vinculado Steam ID" */
-        .steam-warning {
-            background-color: #ffc107; /* Fondo amarillo */
-            color: black; /* Texto negro */
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-    </style>
-
-    <!-- Precarga del video usando <link> -->
-    <link rel="preload" as="video" href="{{ url_for('static', filename='videos/video2.mp4') }}">
-    <link rel="preload" as="video" href="{{ url_for('static', filename='videos/video3.mp4') }}">
 </head>
 <body>
     <!-- Barra de navegación -->
@@ -164,14 +34,40 @@
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-gamepad me-1"></i>Plataformas
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown" style="background-color: #212529;">
-                                <li><a class="dropdown-item text-white" href="{{ url_for('dashboard_steam') }}">Steam</a></li>
-                                <li><a class="dropdown-item text-white" href="{{ url_for('dashboard_riot') }}">Riot Games</a></li>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDropdown">
+                                <!-- Steam -->
+                                <li class="dropdown-submenu">
+                                    <a class="dropdown-item dropdown-toggle" href="#">Steam</a>
+                                    <ul class="dropdown-menu dropdown-menu-dark">
+                                        <li><a class="dropdown-item" href="{{ url_for('dashboard_steam') }}">Estadísticas</a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('dashboard_steam') }}">Juegos</a></li>
+                                    </ul>
+                                </li>
+                                <!-- Riot Games -->
+                                <li class="dropdown-submenu">
+                                    <a class="dropdown-item dropdown-toggle" href="#">Riot Games</a>
+                                    <ul class="dropdown-menu dropdown-menu-dark">
+                                        <li><a class="dropdown-item" href="{{ url_for('dashboard_riot') }}">Estadísticas</a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('dashboard_riot') }}">Buscador</a></li>
+                                    </ul>
+                                </li>
                             </ul>
                         </li>
+                        {% if current_user.username == "admin" %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('users') }}">
+                                    <i class="fas fa-users-cog me-1"></i>Usuarios
+                                </a>
+                            </li>
+                        {% endif %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('configuration') }}">
-                                <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                            <a class="nav-link" href="{{ url_for('profile') }}">
+                                <img src="{{ url_for('static', filename='images/icons/icon' ~ current_user.profile_icon_id ~ '.jpg') }}" 
+                                    alt="Icono de perfil" 
+                                    class="rounded-circle" 
+                                    width="30" 
+                                    height="30">
+                                {{ current_user.username }}
                             </a>
                         </li>
                         <li class="nav-item">
@@ -196,19 +92,6 @@
         </div>
     </nav>
 
-    <!-- Contenedor de notificaciones -->
-    <div id="notification" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
 
     <!-- Contenido principal -->
     <div class="container mt-4 main-content">
@@ -227,10 +110,25 @@
         </div>
     </footer>
 
-    <!-- Scripts de JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Contenedor de notificaciones -->
+    <div id="notification" style="position: fixed; top: 70px; left: 20px; z-index: 9999;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center" role="alert" style="min-width: 300px; margin-bottom: 10px; padding-right: 2.5rem;">
+                        <span style="flex-grow: 1; margin-right: 1rem;">{{ message }}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="margin-left: auto;"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+
+    <!-- Scripts de notificaciones -->
+    
     <script>
-        // Cerrar automáticamente los mensajes flash después de 2 segundos
+        // Cerrar automáticamente los mensajes flash después de 4 segundos
         document.addEventListener("DOMContentLoaded", function() {
             const alerts = document.querySelectorAll(".alert");
             alerts.forEach(alert => {
@@ -239,8 +137,32 @@
                         alert.classList.remove("show");
                         alert.classList.add("fade");
                         setTimeout(() => alert.remove(), 150); // Elimina el mensaje después de la animación
-                    }, 2000); // 2 segundos
+                    }, 4000); // 4 segundos
                 }
+            });
+        });
+    </script>
+
+    <script>
+        // Manejar el hover en los dropdowns
+        document.addEventListener("DOMContentLoaded", function() {
+            const dropdowns = document.querySelectorAll('.nav-item.dropdown, .dropdown-submenu');
+
+            dropdowns.forEach(dropdown => {
+                dropdown.addEventListener('mouseenter', () => {
+                    if (dropdown.classList.contains('dropdown-submenu')) {
+                        // Solo abrir el submenú si se hace hover directamente sobre él
+                        dropdown.querySelector('.dropdown-menu').style.display = 'block';
+                    } else {
+                        // Abrir el dropdown principal
+                        dropdown.querySelector('.dropdown-menu').style.display = 'block';
+                    }
+                });
+
+                dropdown.addEventListener('mouseleave', () => {
+                    // Cerrar el dropdown inmediatamente
+                    dropdown.querySelector('.dropdown-menu').style.display = 'none';
+                });
             });
         });
     </script>

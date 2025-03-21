@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Inicio - GameTrackr{% endblock %}
-
+{% block head %}
+    {{ super() }}
+    <!-- Precargar solo el video de inicio -->
+    <link rel="preload" as="fetch" href="{{ url_for('static', filename='videos/video3.mp4') }}">
+{% endblock %}
 {% block content %}
 <div class="container text-center mt-5">
     <!-- Video de fondo -->
@@ -28,10 +32,17 @@
                     <p class="card-text">
                         📊 Monitorea tu evolución | 🏆 Desbloquea logros | 🎯 Optimiza tu experiencia de juego
                     </p>
-                    <div class="d-flex justify-content-center gap-3">
-                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Regístrate</a>
-                        <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">Iniciar Sesión</a>
-                    </div>
+                        {% if not current_user.is_authenticated %}
+                            <div class="d-flex justify-content-center gap-3">
+                                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Regístrate</a>
+                                <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">Iniciar Sesión</a>
+                            </div>
+                            {% else %}
+                            <div class="text-center mt-3">
+                                <p class="text-light">¡Bienvenido de nuevo, {{ current_user.username }}!</p>
+                                <!--<a href="{{ url_for('dashboard_steam') }}" class="btn btn-info btn-lg">Ir al Dashboard</a> -->
+                            </div>
+                        {% endif %}
                 </div>
             </div>
         </div>

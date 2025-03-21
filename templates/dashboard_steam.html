@@ -18,10 +18,10 @@
 
     <!-- Aviso si no hay Steam ID vinculado -->
     {% if not current_user.steam_id %}
-        <div class="alert alert-warning text-center">
-            <strong>¡Atención!</strong> No has vinculado tu cuenta de Steam. 
-            <a href="{{ url_for('configuration') }}">Vincula tu Steam ID aquí</a>.
-        </div>
+    <div class="alert alert-warning text-center steam-warning" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 1rem;">
+        <strong>¡Atención!</strong> No has vinculado tu cuenta de Steam. 
+        <a href="{{ url_for('profile') }}">Vincula tu Steam ID aquí</a>.
+    </div>
     {% endif %}
 
     <!-- Contenido principal -->
@@ -34,6 +34,40 @@
                 <h5 class="card-title" style="color: white;">Información del Usuario</h5>
                 <p class="card-text">Nombre de Steam: <strong>{{ steam_name }}</strong></p>
                 <p class="card-text">Logros obtenidos: <strong id="total-achievements">{{ total_achievements }}</strong></p>
+            </div>
+        </div>
+
+        <!-- Filtros y búsqueda -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <!-- Buscador -->
+                    <div class="col-md-6">
+                        <input type="text" id="game-search" class="form-control" placeholder="Buscar juegos...">
+                    </div>
+                    
+                    <!-- Selector de ordenación -->
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <select id="sort-by" class="form-select">
+                                <option value="name">Ordenar por nombre</option>
+                                <option value="playtime">Ordenar por horas jugadas</option>
+                                <option value="achievements">Ordenar por logros obtenidos</option>
+                            </select>
+                            <!-- Botón de dirección de ordenación -->
+                            <button id="sort-direction" class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Botón de reset (solo icono) -->
+                    <div class="col-md-2">
+                        <button id="reset-filters" class="btn btn-outline-secondary w-100" title="Restablecer filtros">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

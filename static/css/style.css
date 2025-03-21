@@ -1,55 +1,258 @@
+/* Estilos generales */
 body {
-    background-color: #f4f6f9;
-}
-h1, h2 {
-    color: #333;
-}
-.table th, .table td {
-    vertical-align: middle;
+    background-color: #1a1a1a; /* Fondo oscuro */
+    color: #ffffff; /* Texto blanco */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Asegura que el body ocupe al menos toda la altura de la ventana */
 }
 
-/* Añade esto en tu archivo CSS o dentro de <style> en base.html */
+/* Navbar */
+.navbar {
+    background-color: #212529 !important; /* Fondo oscuro para el navbar */
+    color: #ffffff !important; /* Texto blanco */
+    padding: 0.5rem 1rem; /* Padding uniforme */
+}
+
+.navbar-brand, .nav-link {
+    color: #ffffff !important; /* Texto blanco para el logo y los enlaces */
+    display: flex;
+    align-items: center; /* Centra verticalmente los elementos */
+    height: 100%; /* Asegura que todos los elementos tengan la misma altura */
+}
+
+.nav-link {
+    margin-right: 20px; /* Separa los elementos del header */
+    padding: 0.5rem 1rem; /* Padding uniforme para los enlaces */
+}
+
+.nav-link:hover {
+    transform: scale(1.1); /* Aumentar tamaño al hacer hover */
+    color: #0d6efd !important; /* Cambiar color al azul */
+    transition: transform 0.2s, color 0.2s; /* Transición suave */
+}
+
+/* Ajustes para el icono de perfil */
+.nav-link img {
+    margin-right: 0.5rem; /* Espacio entre el icono y el texto */
+}
+
+/* Ajustes para el botón de cerrar sesión */
+.nav-link i {
+    margin-right: 0.5rem; /* Espacio entre el icono y el texto */
+}
+
+/* Asegurar que los elementos del navbar tengan la misma altura */
+.navbar-nav {
+    display: flex;
+    align-items: center; /* Centra verticalmente los elementos */
+}
+
+/* Dropdowns */
+.dropdown-menu {
+    background-color: #212529; /* Mismo color que el navbar */
+    border: 1px solid #444; /* Borde más oscuro */
+}
+
+/* Primer nivel del dropdown (Steam y Riot Games) */
+.dropdown-item.dropdown-toggle {
+    color: #ffffff; /* Texto blanco */
+    font-size: 1rem; /* Tamaño del texto */
+    padding: 0.5rem 1rem; /* Espaciado interno */
+    white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+    background-color: transparent !important; /* Fondo transparente */
+    transition: none; /* Sin transición */
+}
+
+.dropdown-item.dropdown-toggle:hover {
+    color: #ffffff !important; /* Mantener el color blanco */
+    transform: none; /* Sin cambio de tamaño */
+    background-color: transparent !important; /* Fondo transparente */
+}
+
+/* Segundo nivel del dropdown (Estadísticas, Juegos, Buscador) */
+.dropdown-submenu .dropdown-item {
+    color: #ffffff; /* Texto blanco */
+    font-size: 1rem; /* Tamaño del texto */
+    padding: 0.5rem 1rem; /* Espaciado interno */
+    white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+    background-color: transparent !important; /* Fondo transparente */
+    transition: color 0.2s, transform 0.2s; /* Transición suave */
+}
+
+.dropdown-submenu .dropdown-item:hover {
+    color: #0d6efd !important; /* Color azul al hacer hover */
+    transform: scale(1.05); /* Aumentar tamaño */
+    background-color: transparent !important; /* Fondo transparente */
+}
+
+/* Submenús */
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu > .dropdown-menu {
+    top: 0;
+    left: 100%; /* Abrir hacia la derecha */
+    margin-top: -1px; /* Alinear con el dropdown principal */
+    margin-left: 0.1rem; /* Pequeño margen para separar */
+    border-radius: 0 0.25rem 0.25rem 0.25rem;
+    display: none; /* Ocultar por defecto */
+    background-color: #212529; /* Mismo color que el navbar */
+    border: 1px solid #444; /* Borde más oscuro */
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+    display: block; /* Mostrar el submenú al hacer hover directamente sobre él */
+}
+
+/* Dropdown que se abre al hacer hover */
+.nav-item.dropdown:hover > .dropdown-menu {
+    display: block; /* Mostrar el dropdown al hacer hover sobre el nav-item */
+}
+
+/* Estilos para los enlaces deshabilitados */
+.dropdown-item.disabled {
+    pointer-events: none;
+    color: #6c757d; /* Color gris para indicar que está deshabilitado */
+}
+
+/* Footer */
+.footer {
+    background-color: #212529; /* Mismo color que el navbar */
+    color: #ffffff; /* Texto blanco */
+    padding: 20px 0;
+    margin-top: auto; /* Empuja el footer hacia abajo */
+}
+
+/* Contenido principal */
+.main-content {
+    flex: 1; /* Hace que el contenido principal ocupe el espacio restante */
+    margin-bottom: 2rem; /* Espacio entre el contenido y el footer */
+}
+
+/* Estilos para el texto "Bienvenido, usuario" */
+.welcome-text {
+    cursor: default; /* Evita que el cursor cambie a pointer */
+    margin-right: 20px; /* Separa "Bienvenido, usuario" del botón de inicio */
+}
+
+.welcome-text:hover {
+    transform: none !important; /* Desactiva el efecto hover */
+    color: white !important; /* Mantiene el color blanco */
+}
+
+/* Estilos para las tarjetas */
 .card {
-    height: auto; /* Ajusta la altura automáticamente */
-    min-height: 150px; /* Establece una altura mínima */
-    padding: 1rem; /* Reduce el espaciado interno */
-}
-
-.card h5 {
-    font-size: 1.1rem; /* Reduce el tamaño del título */
-}
-
-.card p {
-    font-size: 0.9rem; /* Reduce el tamaño del texto */
+    background-color: #2d2d2d; /* Fondo oscuro para las tarjetas */
+    color: #ffffff; /* Texto blanco en las tarjetas */
+    border: 1px solid #444; /* Borde más oscuro */
 }
 
 .card-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centra el contenido verticalmente */
-    height: 100%; /* Asegura que la tarjeta ocupe todo el espacio disponible */
+    color: #ffffff; /* Texto blanco en el cuerpo de la tarjeta */
 }
 
 .card-title {
-    margin-bottom: 0.5rem; /* Reduce el margen inferior del título */
+    color: #ffffff; /* Texto blanco para los títulos */
+    font-size: 2rem; /* Tamaño grande */
+    font-weight: bold; /* Negrita */
 }
 
 .card-text {
-    margin-bottom: 0.25rem; /* Reduce el margen inferior del texto */
+    color: #ffffff; /* Texto blanco para el contenido */
 }
 
-.navbar {
-    background-color: #212529 !important; /* Un tono más claro que el fondo oscuro */
+/* Estilos para el título principal */
+h1.display-4 {
+    color: white; /* Título en blanco */
+    font-size: 3rem; /* Tamaño grande */
+    font-weight: bold; /* Negrita */
+    margin-bottom: 1rem; /* Espaciado inferior */
 }
 
-.btn-custom-blue {
-    background-color: #007bff; /* Azul base */
+/* Estilos para el aviso de "No tienes vinculado Steam ID" */
+.steam-warning {
+    background-color: #ffc107; /* Fondo amarillo */
+    color: black; /* Texto negro */
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Estilos para las notificaciones flash */
+.alert {
+    position: relative;
+    padding-right: 2.5rem; /* Espacio para la "X" */
+    display: flex;
+    align-items: center; /* Centra el contenido verticalmente */
+    justify-content: space-between; /* Separa el texto y la "X" */
+}
+
+.alert .btn-close {
+    position: static; /* Elimina el posicionamiento absoluto */
+    margin-left: 1rem; /* Espacio entre el texto y la "X" */
+    padding: 0.5rem; /* Ajusta el padding para que sea más fácil hacer clic */
+    align-self: center; /* Centra la "X" verticalmente */
+    filter: invert(1); /* Cambia el color de la "X" a blanco */
+}
+
+.alert-success {
+    background-color: #28a745; /* Verde para éxito */
     color: white;
-    border: none;
-    transition: background-color 0.3s ease-in-out;
 }
 
-.btn-custom-blue:hover {
-    background-color: #0056b3; /* Azul más oscuro */
+.alert-danger {
+    background-color: #dc3545; /* Rojo para errores */
     color: white;
 }
+
+.alert-warning {
+    background-color: #ffc107; /* Amarillo para advertencias */
+    color: black;
+}
+
+.alert-info {
+    background-color: #17a2b8; /* Azul para información */
+    color: white;
+}
+
+/* Contenedor de las tarjetas de partidas en el dashboard de Riot */
+#riot-summoner-info .card {
+    background-color: transparent; /* Fondo transparente */
+    border: none; /* Sin borde */
+    box-shadow: none; /* Sin sombra */
+    margin-bottom: 1rem; /* Espacio entre las tarjetas */
+}
+
+#riot-summoner-info .card-body {
+    padding: 0; /* Elimina el padding interno */
+}
+
+#riot-summoner-info .card-title {
+    color: #ffffff; /* Texto blanco para el título */
+    font-size: 1.5rem; /* Tamaño del título */
+    font-weight: bold; /* Negrita */
+    margin-bottom: 1rem; /* Espacio inferior */
+    
+}
+
+#riot-summoner-info .card-text {
+    color: #ffffff; /* Texto blanco para el contenido */
+}
+
+/* Ajustes para las tarjetas de partidas */
+#riot-summoner-info .match-card {
+    background-color: #2d2d2d; /* Fondo oscuro para las tarjetas */
+    border: 1px solid #444; /* Borde más oscuro */
+    border-radius: 0.25rem; /* Bordes redondeados */
+    padding: 1rem; /* Espaciado interno */
+    margin-bottom: 1rem; /* Espacio entre las tarjetas */
+}
+
+#riot-summoner-info .match-card:hover {
+    transform: scale(1.02); /* Efecto hover */
+    transition: transform 0.2s; /* Transición suave */
+}
+

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Perfil{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Fondo de imagen -->
+    <img src="{{ url_for('static', filename='images/backgrounds/image6.jpg') }}" alt="Background Image" id="image-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+
+    <!-- Contenedor principal -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Tarjeta de perfil -->
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+                    <!-- Título -->
+                    <h2 class="card-title text-center mb-4">Perfil de Usuario</h2>
+
+                    <!-- Sección de información del usuario -->
+                    <div class="mb-5">
+                        <h4 class="mb-4 text-primary"><i class="fas fa-user me-2"></i>Información del Usuario</h4>
+                        <div class="row">
+                            <!-- Foto de perfil -->
+                            <div class="col-md-4 text-center mb-4">
+                                <img src="{{ url_for('static', filename='images/icons/icon' ~ current_user.profile_icon_id ~ '.jpg') }}" 
+                                    alt="Icono de perfil" 
+                                    class="rounded-circle shadow" 
+                                    width="150" 
+                                    height="150">
+                                <button class="btn btn-outline-primary mt-3 w-100" data-bs-toggle="modal" data-bs-target="#changeProfileIconModal">
+                                    <i class="fas fa-edit me-2"></i>Cambiar icono
+                                </button>
+                            </div>
+                            <!-- Nombre de usuario -->
+                            <div class="col-md-8">
+                                <div class="bg-dark p-3 rounded mb-3">
+                                    <p class="mb-0"><strong>Nombre de usuario:</strong> 
+                                        <span class="text-white fs-5">{{ current_user.username }}</span>
+                                    </p>
+                                    <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#editUsernameModal">
+                                        <i class="fas fa-edit me-2"></i>Cambiar nombre
+                                    </button>
+                                </div>
+                                <!-- Cambiar contraseña -->
+                                <div class="d-flex align-items-center mb-3">
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                        <i class="fas fa-key me-2"></i>Cambiar contraseña
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Steam -->
+                    <div class="mb-5">
+                        <h4 class="mb-4 text-primary"><i class="fab fa-steam me-2"></i>Steam</h4>
+                        <div class="bg-dark p-3 rounded mb-3">
+                            <p class="mb-0"><strong>ID de Steam:</strong> 
+                                <span class="text-white fs-5" id="steamIdDisplay">{{ current_user.steam_id if current_user.steam_id else "No vinculado" }}</span>
+                            </p>
+                            <p class="mb-0"><strong>Nombre de Steam:</strong> 
+                                <span class="text-white fs-5" id="steamNameDisplay">{{ steam_name if steam_name else "No disponible" }}</span>
+                            </p>
+                            <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#editSteamIdModal">
+                                <i class="fas fa-edit me-2"></i>Cambiar ID de Steam
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Riot Games -->
+                    <div class="mb-4">
+                        <h4 class="mb-4 text-primary"><i class="fas fa-gamepad me-2"></i>Riot Games</h4>
+                        <div class="bg-dark p-3 rounded mb-3">
+                            <p class="mb-0"><strong>Nombre de Invocador:</strong> 
+                                <span class="text-white fs-5" id="summonerDisplay">
+                                    {{ current_user.summoner_name if current_user.summoner_name else "No configurado" }}
+                                    {% if current_user.riot_tag %}#{{ current_user.riot_tag }}{% endif %}
+                                </span>
+                            </p>
+                            <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#editRiotInfoModal">
+                                <i class="fas fa-edit me-2"></i>Cambiar información
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar icono -->
+<div class="modal fade" id="changeProfileIconModal">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Profile Icon</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    {% for i in range(1, total_icons + 1) %}
+                        <div class="col-4 text-center mb-3">
+                            <img src="{{ url_for('static', filename='images/icons/icon' ~ i ~ '.jpg') }}" 
+                                 class="rounded-circle" 
+                                 width="80" 
+                                 height="80"
+                                 style="cursor: pointer;"
+                                 onclick="changeProfileIcon('{{ i }}')">
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar nombre de usuario -->
+<div class="modal fade" id="editUsernameModal" tabindex="-1" aria-labelledby="editUsernameModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUsernameModalLabel">Editar Nombre de Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUsernameForm">
+                    <div class="mb-3">
+                        <label for="usernameInput" class="form-label">Nuevo nombre de usuario:</label>
+                        <input type="text" class="form-control" id="usernameInput" value="{{ current_user.username }}">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="saveUsernameButton">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar ID de Steam -->
+<div class="modal fade" id="editSteamIdModal" tabindex="-1" aria-labelledby="editSteamIdModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSteamIdModalLabel">Editar ID de Steam</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSteamIdForm">
+                    <div class="mb-3">
+                        <label for="steamIdInput" class="form-label">Nuevo ID de Steam:</label>
+                        <input type="text" class="form-control" id="steamIdInput" value="{{ current_user.steam_id if current_user.steam_id else '' }}">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="saveSteamIdButton">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar nombre de invocador y tag de Riot -->
+<div class="modal fade" id="editRiotInfoModal" tabindex="-1" aria-labelledby="editRiotInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRiotInfoModalLabel">Editar Información de Riot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editRiotInfoForm">
+                    <div class="mb-3">
+                        <label for="summonerNameInput" class="form-label">Nombre de Invocador:</label>
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control" id="summonerNameInput" value="{{ current_user.summoner_name if current_user.summoner_name else '' }}">
+                            <span class="ms-2" data-bs-toggle="tooltip" data-bs-placement="right" title="Es el nombre que aparece antes del #Tag en tu perfil de Riot">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="riotTagInput" class="form-label">Tag de Riot:</label>
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control" id="riotTagInput" value="{{ current_user.riot_tag if current_user.riot_tag else '' }}">
+                            <span class="ms-2" data-bs-toggle="tooltip" data-bs-placement="right" title="Es la parte que aparece después del # en tu nombre de Riot">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="saveRiotInfoButton">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal para cambiar la contraseña -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Cambiar Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPasswordInput" class="form-label">Contraseña actual:</label>
+                        <input type="password" class="form-control" id="currentPasswordInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPasswordInput" class="form-label">Nueva contraseña:</label>
+                        <input type="password" class="form-control" id="newPasswordInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPasswordInput" class="form-label">Confirmar nueva contraseña:</label>
+                        <input type="password" class="form-control" id="confirmNewPasswordInput" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="savePasswordButton">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}

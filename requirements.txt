@@ -14,3 +14,7 @@ greenlet==3.0.1
 # Verifica la instalación       -   pip list
 # Para ejecutar la aplicación   -   python app.py
 
+#Cansino    steam_id: 76561198109234473    riot_id: boredofnames#euw
+#Antas      steam_id: 76561198805693188    riot_id: shin#639
+#Victor     steam_id: 76561198078801394    riot_id: alguien#euw
+#Claudia    steam_id: 76561198273923686    riot_id: claulalokka#euw

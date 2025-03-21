@@ -81,7 +81,7 @@ def check_games_status():
     else:
         return jsonify({"status": "loading", "progress": user.progress if hasattr(user, 'progress') else 0})  # La descarga aún está en progreso
     
-@login_required    
+@login_required
 def check_download_status():
     """API para verificar el estado de la descarga."""
     if not current_user.is_authenticated:

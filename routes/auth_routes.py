@@ -1,11 +1,17 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify, get_flashed_messages
+from flask import render_template, redirect, url_for, flash, request, jsonify, get_flashed_messages, flash, current_app
 from forms.login_form import LoginForm
 from flask_login import login_required, current_user, login_user, logout_user
 from models import db
+from models.game import Game
+from models.achievement import Achievement
 from models.user import User
 from utils.steam_api import fetch_steam_username
+from utils.riot_api import get_puuid
 from utils.background_tasks import start_background_fetch
 from forms.registration_form import RegistrationForm
+import random
+import os
+
 
 def register():
     """Maneja el registro de nuevos usuarios."""
@@ -17,8 +23,18 @@ def register():
             flash('Este nombre de usuario ya está registrado.', 'warning')
             return redirect(url_for('register'))
 
-        # Crear el nuevo usuario sin Steam ID
-        user = User(username=form.username.data)
+        # Obtener lista de iconos disponibles
+        icons_dir = os.path.join(current_app.root_path, 'static', 'images', 'icons')
+        icons = [f for f in os.listdir(icons_dir) if f.startswith('icon') and f.endswith('.jpg')]
+        
+        # Asignar un icono aleatorio
+        if icons:
+            icon_id = random.randint(1, len(icons))  # Índice aleatorio basado en la cantidad de iconos
+        else:
+            icon_id = 1  # Valor por defecto si no hay iconos
+
+        # Crear el nuevo usuario
+        user = User(username=form.username.data, profile_icon_id=icon_id)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -28,8 +44,6 @@ def register():
         flash('Cuenta creada con éxito.', 'success')
         return redirect(url_for('index'))
     return render_template('register.html', form=form)
-
-from flask import flash
 
 def login():
     """Maneja el inicio de sesión de usuarios."""
@@ -50,57 +64,112 @@ def logout():
     return redirect(url_for('index'))
 
 @login_required
-def configuration():
+def profile():
     """Muestra la página de configuración del usuario."""
-    return render_template('config.html')
+    # Obtener lista de iconos disponibles
+    icons_dir = os.path.join(current_app.root_path, 'static', 'images', 'icons')
+    icons = [f for f in os.listdir(icons_dir) if f.startswith('icon') and f.endswith('.jpg')]
+    
+    return render_template('profile.html', total_icons=len(icons))
 
 @login_required
 def update_username():
     """Actualiza el nombre de usuario."""
-    new_username = request.form.get('username')
+    new_username = request.json.get('username')
     if new_username:
         current_user.username = new_username
         db.session.commit()
-        flash('Nombre de usuario actualizado correctamente.', 'success')
+        return jsonify({"success": True})
     else:
-        flash('El nombre de usuario no puede estar vacío.', 'danger')
-    return redirect(url_for('configuration'))
+        return jsonify({"success": False, "error": "El nombre de usuario no puede estar vacío."}), 400
 
-@login_required
-def update_password():
-    """Actualiza la contraseña del usuario."""
-    current_password = request.form.get('current_password')
-    new_password = request.form.get('new_password')
-    confirm_new_password = request.form.get('confirm_new_password')
-
-    if not current_user.check_password(current_password):
-        flash('La contraseña actual es incorrecta.', 'danger')
-    elif new_password != confirm_new_password:
-        flash('Las contraseñas no coinciden.', 'danger')
-    else:
-        current_user.set_password(new_password)
-        db.session.commit()
-        flash('Contraseña actualizada correctamente.', 'success')
-    return redirect(url_for('configuration'))
 
 @login_required
 def link_steam():
     """Vincula el Steam ID al usuario e inicia la descarga de juegos."""
-    steam_id = request.form.get('steam_id')
+    steam_id = request.json.get('steam_id')
     if steam_id:
-        # Verificar que el Steam ID sea válido (debe ser un número)
-        if not steam_id.isdigit():
-            flash('El Steam ID debe ser un número.', 'danger')
-            return redirect(url_for('configuration'))
+        # Verificar si el Steam ID es válido
+        steam_name = fetch_steam_username(steam_id, current_app.config['STEAM_API_KEY'])
+        if not steam_name:
+            return jsonify({"success": False, "error": "El ID de Steam no es válido o no existe."}), 400
 
+        # Eliminar juegos antiguos asociados al usuario
+        Game.query.filter_by(user_id=current_user.id).delete()
+        Achievement.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+
+        # Actualizar el Steam ID del usuario y marcar como "descargando"
         current_user.steam_id = steam_id
         current_user.is_fetching = True  # Marcar que se está descargando
+        current_user.progress = 0  # Reiniciar el progreso
         db.session.commit()
 
         # Iniciar la descarga de juegos en segundo plano
         start_background_fetch(current_user.id)
-
         flash('Steam ID vinculado correctamente. Descargando juegos...', 'success')
+        return jsonify({"success": True})
     else:
-        flash('El Steam ID no puede estar vacío.', 'danger')
-    return redirect(url_for('configuration'))
+        return jsonify({"success": False, "error": "El ID de Steam no puede estar vacío."}), 400
+
+
+@login_required
+def update_riot_info():
+    """Actualiza el nombre de invocador y el tag de Riot."""
+    summoner_name = request.json.get('summoner_name')
+    riot_tag = request.json.get('riot_tag')
+
+    if summoner_name and riot_tag:
+        # Verificar si el nombre de invocador y el tag son válidos
+        puuid = get_puuid(summoner_name, riot_tag)
+        if isinstance(puuid, dict) and "error" in puuid:
+            return jsonify({"success": False, "error": "El nombre de invocador o el tag no son válidos."}), 400
+
+        # Actualizar la información en la base de datos
+        current_user.summoner_name = summoner_name
+        current_user.riot_tag = riot_tag
+        db.session.commit()
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False, "error": "Datos inválidos"}), 400
+    
+@login_required
+def update_password():
+    """Cambia la contraseña del usuario."""
+    current_password = request.json.get('current_password')
+    new_password = request.json.get('new_password')
+    confirm_new_password = request.json.get('confirm_new_password')
+
+    if not current_user.check_password(current_password):
+        return jsonify({"success": False, "error": "La contraseña actual es incorrecta."}), 400
+
+    if new_password != confirm_new_password:
+        return jsonify({"success": False, "error": "Las nuevas contraseñas no coinciden."}), 400
+
+    current_user.set_password(new_password)
+    db.session.commit()
+    return jsonify({"success": True})
+
+@login_required
+def change_profile_icon():
+    try:
+        icon_id = request.json.get('icon_id')
+        print(f"[DEBUG] Icon ID recibido: {icon_id}")  # Depuración
+        
+        # Validar existencia de iconos
+        icons_dir = os.path.join(current_app.root_path, 'static', 'images', 'icons')
+        print(f"[DEBUG] Ruta de iconos: {icons_dir}")  # Depuración
+        
+        icons = [f for f in os.listdir(icons_dir) if f.startswith('icon') and f.endswith('.jpg')]
+        print(f"[DEBUG] Iconos encontrados: {icons}")  # Depuración
+        
+        if 1 <= icon_id <= len(icons):
+            current_user.profile_icon_id = icon_id
+            db.session.commit()
+            return jsonify({"success": True})
+        else:
+            print(f"[ERROR] ID de icono inválido: {icon_id}")  # Depuración
+            return jsonify({"success": False, "error": "Invalid icon ID"}), 400
+    except Exception as e:
+        print(f"[ERROR] Excepción en change_profile_icon: {str(e)}")  # Depuración
+        return jsonify({"success": False, "error": str(e)}), 500

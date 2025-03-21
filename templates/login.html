@@ -1,4 +1,11 @@
 {% extends "base.html" %}
+{% block title %}Inicio de sesión - GameTrackr{% endblock %}
+{% block head %}
+    {{ super() }}
+    <!-- Precargar solo el video de login -->
+    <link rel="preload" as="fetch" href="{{ url_for('static', filename='videos/video2.mp4') }}">
+{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
 
