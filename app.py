@@ -7,10 +7,8 @@ from routes.auth_routes import register, login, logout, profile, update_username
 from routes.game_routes import dashboard, dashboard_steam, dashboard_riot
 from routes.api_routes import api_games, get_achievements, check_games_status, check_download_status, total_achievements, riot_summoner, riot_match_details, summoner_info
 from utils.background_tasks import start_background_fetch
-from routes.admin_routes import users, update_user, delete_user, users_api
+from routes.admin_routes import users, users_api, update_delete_user, create_user
 import logging
-
-
 
 # Configuración de Flask
 app = Flask(__name__)
@@ -64,12 +62,13 @@ app.route('/update_riot_info', methods=['POST'])(update_riot_info)
 
 # Registrar rutas de administrador
 app.route('/users')(users)
-app.route('/api/users')(users_api)
-app.route('/api/users/<int:user_id>', methods=['PUT', 'DELETE'])(update_user)
+app.route('/api/users', methods=['GET', 'POST'])(users_api)
+app.route('/api/users/<int:user_id>', methods=['PUT', 'DELETE'])(update_delete_user)
+app.route('/api/users', methods=['GET', 'POST'])(create_user)
 
 # Crear la base de datos al iniciar la aplicación
 with app.app_context(): 
-    db.drop_all()  # Elimina todas las tablas existentes
+    #db.drop_all()  # Elimina todas las tablas existentes
     print("✅ Base de datos eliminada correctamente.")
     db.create_all()  # Crea todas las tablas desde cero
     print("✅ Base de datos creada correctamente.")

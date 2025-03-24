@@ -1,37 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Users - GameTrackr{% endblock %}
+{% block title %}Usuarios - GameTrackr{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="text-center mb-4" style="color: white; font-size: 2.5rem; font-weight: bold;">Manage Users</h2>
+<script>
+    const CURRENT_USER_USERNAME = "{{ current_user.username }}";
+    const IS_ADMIN = CURRENT_USER_USERNAME === "admin";
+</script>
 
-    <!-- Filtros y búsqueda -->
+<div class="container mt-4">
+    <h2 class="text-center mb-4" style="color: white; font-size: 2.5rem; font-weight: bold;">Gestión de Usuarios</h2>
+
+    <!-- Formulario para crear usuario (solo admin) -->
+    {% if current_user.username == "admin" %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Crear Nuevo Usuario</h5>
+            <form id="createUserForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" name="username" class="form-control" placeholder="Nombre de usuario" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">Crear</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    <!-- Filtros de búsqueda -->
     <div class="card mb-4">
         <div class="card-body">
             <div class="row g-3 align-items-center">
-                <!-- Buscador -->
                 <div class="col-md-6">
-                    <input type="text" id="user-search" class="form-control" placeholder="Search users...">
+                    <input type="text" id="user-search" class="form-control" placeholder="Buscar usuarios...">
                 </div>
-                
-                <!-- Selector de ordenación -->
                 <div class="col-md-4">
                     <div class="input-group">
                         <select id="sort-by" class="form-select">
-                            <option value="username">Sort by name</option>
-                            <option value="achievements">Sort by achievements</option>
-                            <option value="rank">Sort by rank</option>
+                            <option value="username">Ordenar por nombre</option>
+                            <option value="achievements">Ordenar por logros</option>
+                            <option value="rank">Ordenar por rango</option>
                         </select>
-                        <!-- Botón de dirección de ordenación -->
                         <button id="sort-direction" class="btn btn-outline-secondary" type="button">
                             <i class="fas fa-arrow-up"></i>
                         </button>
                     </div>
                 </div>
-                
-                <!-- Botón de reset (solo icono) -->
                 <div class="col-md-2">
-                    <button id="reset-filters" class="btn btn-outline-secondary w-100" title="Reset filters">
+                    <button id="reset-filters" class="btn btn-outline-secondary w-100" title="Restablecer filtros">
                         <i class="fas fa-sync"></i>
                     </button>
                 </div>
@@ -44,54 +64,67 @@
         <table class="table table-dark table-hover">
             <thead>
                 <tr>
-                    <th>Username</th>
-                    <th>Highest Rank (LoL)</th>
-                    <th>Total Achievements</th>
-                    {% if current_user.username == "admin" %}
-                        <th>Actions</th>
-                    {% endif %}
+                    <th>Usuario</th>
+                    <th>Rango</th>
+                    <th>Logros</th>
+                    {% if current_user.username == "admin" %}<th>Acciones</th>{% endif %}
                 </tr>
             </thead>
-            <tbody id="users-table-body">
-                <!-- Los usuarios se cargarán dinámicamente aquí -->
-            </tbody>
+            <tbody id="users-table-body"></tbody>
         </table>
     </div>
-
     <!-- Paginación -->
-    <nav aria-label="Pagination" class="mt-4">
+    <nav aria-label="Paginación" class="mt-4">
         <ul class="pagination justify-content-center" id="pagination"></ul>
     </nav>
 </div>
 
-<!-- Modal para editar usuario -->
-<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content bg-dark text-white">
             <div class="modal-header">
-                <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                <h5 class="modal-title">Confirmar eliminación</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editUserForm">
-                    <div class="mb-3">
-                        <label for="usernameInput" class="form-label">Username:</label>
-                        <input type="text" class="form-control" id="usernameInput">
-                    </div>
-                    <div class="mb-3">
-                        <label for="passwordInput" class="form-label">New Password:</label>
-                        <input type="password" class="form-control" id="passwordInput">
-                    </div>
-                </form>
+                <p id="deleteConfirmationText">¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveUserButton">Save changes</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteButton">Eliminar</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Scripts -->
+<!-- Modal para editar usuario -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <div class="mb-3">
+                        <label for="usernameInput" class="form-label">Nombre de usuario:</label>
+                        <input type="text" class="form-control" id="usernameInput">
+                    </div>
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">Nueva contraseña:</label>
+                        <input type="password" class="form-control" id="passwordInput">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="saveUserButton">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/users.js') }}"></script>
 {% endblock %}
