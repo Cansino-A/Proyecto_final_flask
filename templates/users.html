@@ -2,13 +2,171 @@
 {% block title %}Usuarios - GameTrackr{% endblock %}
 
 {% block content %}
+<style>
+    .table-container {
+        background: rgba(45, 45, 45, 0.9);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(147, 51, 234, 0.2);
+        backdrop-filter: blur(10px);
+        overflow-x: hidden;
+    }
+    
+    .table-responsive {
+        overflow-x: hidden;
+    }
+    
+    .table {
+        margin-bottom: 0;
+        background: transparent;
+        width: 100%;
+        table-layout: fixed;
+    }
+    
+    .table td, .table th {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .table thead th {
+        background-color: rgba(147, 51, 234, 0.2);
+        border-bottom: 2px solid rgba(147, 51, 234, 0.3);
+        color: #ffffff;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+    
+    .table tbody tr {
+        transition: all 0.3s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: transparent;
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(147, 51, 234, 0.1);
+        transform: translateX(5px);
+    }
+    
+    .table td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #ffffff;
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .rank-badge {
+        background: rgba(147, 51, 234, 0.2);
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    
+    .rank-badge:hover {
+        background: rgba(147, 51, 234, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .achievement-count {
+        background: rgba(255, 215, 0, 0.2);
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    
+    .achievement-count:hover {
+        background: rgba(255, 215, 0, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(147, 51, 234, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #ffffff;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-action {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+    }
+    
+    .search-box {
+        background: rgba(45, 45, 45, 0.9);
+        border: 1px solid rgba(147, 51, 234, 0.3);
+        border-radius: 20px;
+        padding: 10px 20px;
+        color: #ffffff;
+        transition: all 0.3s ease;
+    }
+    
+    .search-box:focus {
+        background: rgba(45, 45, 45, 0.95);
+        border-color: rgba(147, 51, 234, 0.5);
+        box-shadow: 0 0 0 0.2rem rgba(147, 51, 234, 0.25);
+    }
+    
+    .sort-select {
+        background: rgba(45, 45, 45, 0.9);
+        border: 1px solid rgba(147, 51, 234, 0.3);
+        border-radius: 20px;
+        padding: 10px 20px;
+        color: #ffffff;
+        transition: all 0.3s ease;
+    }
+    
+    .sort-select:focus {
+        background: rgba(45, 45, 45, 0.95);
+        border-color: rgba(147, 51, 234, 0.5);
+        box-shadow: 0 0 0 0.2rem rgba(147, 51, 234, 0.25);
+    }
+</style>
+
 <script>
     const CURRENT_USER_USERNAME = "{{ current_user.username }}";
     const IS_ADMIN = CURRENT_USER_USERNAME === "admin";
+    console.log("Usuario actual:", CURRENT_USER_USERNAME);
+    console.log("¿Es admin?:", IS_ADMIN);
 </script>
 
+<!-- Contenedor para notificaciones -->
+<div id="notification" class="position-fixed top-0 end-0 p-3" style="z-index: 11"></div>
+
 <div class="container mt-4">
-    <h2 class="text-center mb-4" style="color: white; font-size: 2.5rem; font-weight: bold;">Gestión de Usuarios</h2>
+    <!-- Fondo de imagen -->
+    <img src="{{ url_for('static', filename='images/backgrounds/image7.jpg') }}" alt="Background Image" id="image-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+
+    <h2 class="text-center mb-4" style="color: white; font-size: 2.5rem; font-weight: bold;">Lista de Usuarios</h2>
 
     <!-- Formulario para crear usuario (solo admin) -->
     {% if current_user.username == "admin" %}
@@ -31,16 +189,17 @@
         </div>
     </div>
     {% endif %}
+
     <!-- Filtros de búsqueda -->
     <div class="card mb-4">
         <div class="card-body">
             <div class="row g-3 align-items-center">
                 <div class="col-md-6">
-                    <input type="text" id="user-search" class="form-control" placeholder="Buscar usuarios...">
+                    <input type="text" id="user-search" class="form-control search-box" placeholder="Buscar usuarios...">
                 </div>
                 <div class="col-md-4">
                     <div class="input-group">
-                        <select id="sort-by" class="form-select">
+                        <select id="sort-by" class="form-select sort-select">
                             <option value="username">Ordenar por nombre</option>
                             <option value="achievements">Ordenar por logros</option>
                             <option value="rank">Ordenar por rango</option>
@@ -60,25 +219,31 @@
     </div>
 
     <!-- Tabla de usuarios -->
-    <div class="table-responsive">
-        <table class="table table-dark table-hover">
-            <thead>
-                <tr>
-                    <th>Usuario</th>
-                    <th>Rango</th>
-                    <th>Logros</th>
-                    {% if current_user.username == "admin" %}<th>Acciones</th>{% endif %}
-                </tr>
-            </thead>
-            <tbody id="users-table-body"></tbody>
-        </table>
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Steam</th>
+                        <th>Riot</th>
+                        <th>Rango</th>
+                        <th>Logros</th>
+                        {% if current_user.username == "admin" %}<th>Acciones</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody id="users-table-body"></tbody>
+            </table>
+        </div>
     </div>
+
     <!-- Paginación -->
     <nav aria-label="Paginación" class="mt-4">
         <ul class="pagination justify-content-center" id="pagination"></ul>
     </nav>
 </div>
 
+{% if current_user.username == "admin" %}
 <!-- Modal de confirmación para eliminar -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -125,6 +290,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script src="{{ url_for('static', filename='js/users.js') }}"></script>
 {% endblock %}

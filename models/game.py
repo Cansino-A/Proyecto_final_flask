@@ -1,4 +1,5 @@
 from . import db
+from datetime import datetime
 
 class Game(db.Model):
     __tablename__ = 'game'
@@ -9,6 +10,8 @@ class Game(db.Model):
     image = db.Column(db.String(255), nullable=True)
     platform = db.Column(db.String(50), nullable=False, default='Steam')  # 'Steam'
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_played = db.Column(db.DateTime, nullable=True)
 
     # Relación con User
     user = db.relationship('User', backref=db.backref('games', lazy=True))

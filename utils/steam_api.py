@@ -71,7 +71,9 @@ def _process_steam_games(user, games_data):
     """Procesa la lista de juegos y los almacena en la base de datos."""
     total_games = len(games_data)
     for index, game in enumerate(games_data):
-        if not Game.query.filter_by(appid=game["appid"], user_id=user.id).first():
+        existing_game = Game.query.filter_by(appid=game["appid"], user_id=user.id).first()
+        
+        if not existing_game:
             # Obtener el nombre del juego
             game_name = fetch_steam_game_name(game["appid"])
 
@@ -80,21 +82,27 @@ def _process_steam_games(user, games_data):
                 name=game_name,
                 playtime=game.get("playtime_forever", 0) // 60,
                 image=f"https://cdn.cloudflare.steamstatic.com/steam/apps/{game['appid']}/capsule_184x69.jpg",
-                platform='Steam',  # Asegúrate de establecer la plataforma
-                user_id=user.id
+                platform='Steam',
+                user_id=user.id,
+                last_played=datetime.utcnow()  # Establecer la fecha de última vez jugado
             )
             db.session.add(new_game)
-            db.session.commit()
+        else:
+            # Actualizar el juego existente
+            existing_game.playtime = game.get("playtime_forever", 0) // 60
+            existing_game.last_played = datetime.utcnow()  # Actualizar la fecha de última vez jugado
+        
+        db.session.commit()
 
-            # Intentar obtener logros para todos los juegos
-            try:
-                _fetch_steam_achievements(user, game["appid"])
-            except Exception as e:
-                current_app.logger.error(f"Error al obtener logros para el juego {game_name} (ID: {game['appid']}): {str(e)}")
-            
-            # Actualizar progreso
-            user.progress = int((index + 1) / total_games * 100)
-            db.session.commit()
+        # Intentar obtener logros para todos los juegos
+        try:
+            _fetch_steam_achievements(user, game["appid"])
+        except Exception as e:
+            current_app.logger.error(f"Error al obtener logros para el juego {game_name} (ID: {game['appid']}): {str(e)}")
+        
+        # Actualizar progreso
+        user.progress = int((index + 1) / total_games * 100)
+        db.session.commit()
 
     user.last_updated = datetime.utcnow()
     user.progress = 100

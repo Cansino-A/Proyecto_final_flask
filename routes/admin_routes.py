@@ -13,44 +13,147 @@ def users():
 
 @login_required
 def users_api():
-    page = request.args.get("page", 1, type=int)
-    search = request.args.get("search", "")
-    sort_by = request.args.get("sort", "username")
-    order = request.args.get("order", "asc")
+    """API para gestionar usuarios."""
+    if request.method == 'GET':
+        try:
+            page = request.args.get('page', 1, type=int)
+            search = request.args.get('search', '')
+            sort_by = request.args.get('sort', 'username')
+            order = request.args.get('order', 'asc')
 
-    # Consulta mejorada con conteo de logros
-    query = db.session.query(
-        User,
-        db.func.count(Achievement.id).filter(Achievement.achieved == True).label('total_achievements')
-    ).outerjoin(Achievement).group_by(User.id)
+            # Consulta base para obtener todos los usuarios excepto admin
+            query = User.query.filter(User.username != 'admin')
 
-    if search:
-        query = query.filter(User.username.ilike(f"%{search}%"))
+            if search:
+                query = query.filter(User.username.ilike(f'%{search}%'))
 
-    # Ordenación segura
-    order_column = {
-        "username": User.username,
-        "achievements": db.text('total_achievements')
-    }.get(sort_by, User.username)
+            if sort_by == 'username':
+                query = query.order_by(User.username.asc() if order == 'asc' else User.username.desc())
+            elif sort_by == 'achievements':
+                query = query.order_by(User.total_achievements.asc() if order == 'asc' else User.total_achievements.desc())
+            elif sort_by == 'rank':
+                query = query.order_by(User.highest_rank.asc() if order == 'asc' else User.highest_rank.desc())
 
-    query = query.order_by(order_column.asc() if order == "asc" else order_column.desc())
+            pagination = query.paginate(page=page, per_page=10, error_out=False)
+            users = pagination.items
 
-    paginated_users = query.paginate(page=page, per_page=10, error_out=False)
+            # Lista para almacenar los datos de usuarios procesados
+            processed_users = []
+
+            # Procesar cada usuario
+            for user in users:
+                try:
+                    # Actualizar rango si tiene información de Riot
+                    if user.summoner_name and user.riot_tag:
+                        try:
+                            user.highest_rank = get_highest_rank(user)
+                        except Exception as e:
+                            print(f"Error al obtener rango para usuario {user.username}: {str(e)}")
+                            user.highest_rank = "Error al obtener rango"
+                    
+                    # Actualizar total de logros
+                    try:
+                        user.total_achievements = Achievement.query.filter_by(user_id=user.id, achieved=True).count()
+                    except Exception as e:
+                        print(f"Error al obtener logros para usuario {user.username}: {str(e)}")
+                        user.total_achievements = 0
+
+                    # Agregar usuario procesado a la lista
+                    processed_users.append({
+                        'id': user.id,
+                        'username': user.username,
+                        'highest_rank': user.highest_rank or 'N/A',
+                        'total_achievements': user.total_achievements or 0,
+                        'steam_name': user.steam_name or 'No vinculado',
+                        'riot_info': f"{user.summoner_name}#{user.riot_tag}" if user.summoner_name and user.riot_tag else 'No vinculado'
+                    })
+                except Exception as e:
+                    print(f"Error procesando usuario {user.username}: {str(e)}")
+                    # Si hay error al procesar un usuario, agregarlo con valores por defecto
+                    processed_users.append({
+                        'id': user.id,
+                        'username': user.username,
+                        'highest_rank': 'N/A',
+                        'total_achievements': 0,
+                        'steam_name': 'No vinculado',
+                        'riot_info': 'No vinculado'
+                    })
+
+            try:
+                db.session.commit()
+            except Exception as e:
+                print(f"Error al guardar cambios en la base de datos: {str(e)}")
+                db.session.rollback()
+
+            return jsonify({
+                'users': processed_users,
+                'total_pages': pagination.pages,
+                'current_page': page
+            })
+        except Exception as e:
+            print(f"Error en users_api: {str(e)}")
+            return jsonify({'error': 'Error al cargar usuarios'}), 500
+
+    elif request.method == 'POST':
+        if current_user.username != "admin":
+            return jsonify({'success': False, 'error': 'No tienes permisos para crear usuarios'}), 403
+
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return jsonify({'success': False, 'error': 'Se requiere nombre de usuario y contraseña'}), 400
+
+        if User.query.filter_by(username=username).first():
+            return jsonify({'success': False, 'error': 'El nombre de usuario ya existe'}), 400
+
+        try:
+            user = User(username=username)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Usuario creado correctamente'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+@login_required
+def update_delete_user(user_id):
+    """API para actualizar o eliminar usuarios."""
+    if current_user.username != "admin":
+        return jsonify({'success': False, 'error': 'No tienes permisos para realizar esta acción'}), 403
+
+    user = User.query.get_or_404(user_id)
     
-    users_data = [{
-        "id": user.id,
-        "username": user.username,
-        "total_achievements": total_achievements,
-        "highest_rank": "N/A"  # Implementar lógica de ranking si es necesario
-    } for user, total_achievements in paginated_users.items]
+    # Evitar que se elimine el usuario admin
+    if user.username == 'admin':
+        return jsonify({'error': 'No se puede eliminar el usuario administrador'}), 403
+        
+    if request.method == 'PUT':
+        data = request.get_json()
+        new_username = data.get('username')
+        new_password = data.get('password')
 
-    return jsonify({
-        "users": users_data,
-        "total_pages": paginated_users.pages,
-        "current_page": page
-    })
+        try:
+            if new_username:
+                user.username = new_username
+            if new_password:
+                user.set_password(new_password)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Usuario actualizado correctamente'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
 
-
+    elif request.method == 'DELETE':
+        try:
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Usuario eliminado correctamente'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 def get_highest_rank(user):
     """Obtiene el rango más alto de un usuario en League of Legends."""
@@ -71,8 +174,21 @@ def get_highest_rank(user):
             return None
             
         if not isinstance(ranked_info, list) or len(ranked_info) == 0:
-            return "Unranked"
+            return "Sin rango"
             
+        # Diccionario de traducción de rangos
+        rank_translations = {
+            "IRON": "Hierro",
+            "BRONZE": "Bronce",
+            "SILVER": "Plata",
+            "GOLD": "Oro",
+            "PLATINUM": "Platino",
+            "DIAMOND": "Diamante",
+            "MASTER": "Maestro",
+            "GRANDMASTER": "Gran Maestro",
+            "CHALLENGER": "Desafiante"
+        }
+        
         # Orden de los rangos de menor a mayor
         rank_order = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
         
@@ -82,49 +198,7 @@ def get_highest_rank(user):
             key=lambda x: rank_order.index(x["tier"]) if x["tier"] in rank_order else -1
         )
         
-        return f"{highest_rank['tier']} {highest_rank['rank']}"
+        return f"{rank_translations.get(highest_rank['tier'], highest_rank['tier'])} {highest_rank['rank']}"
     except Exception as e:
         print(f"Error getting rank for user {user.username}: {str(e)}")
         return None
-
-@login_required
-def update_delete_user(user_id):
-    if current_user.username != "admin":
-        return jsonify({"error": "Acceso denegado"}), 403
-
-    user = User.query.get_or_404(user_id)
-
-    if request.method == 'PUT':
-        data = request.get_json()
-        if 'password' in data and data['password']:
-            user.password_hash = generate_password_hash(data['password'])
-        if 'username' in data:
-            user.username = data['username']
-        db.session.commit()
-        return jsonify({"success": True, "message": "Usuario actualizado"})
-
-    elif request.method == 'DELETE':
-        db.session.delete(user)
-        db.session.commit()
-        return jsonify({"success": True, "message": "Usuario eliminado"})
-
-    
-@login_required
-def create_user():
-    if current_user.username != "admin":
-        return jsonify({"error": "Acceso denegado"}), 403
-
-    data = request.get_json()
-    if not data.get('username') or not data.get('password'):
-        return jsonify({"error": "Faltan campos requeridos"}), 400
-
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({"error": "Usuario ya existe"}), 400
-
-    new_user = User(
-        username=data['username'],
-        password_hash=generate_password_hash(data['password'])
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"success": True, "message": "Usuario creado"})

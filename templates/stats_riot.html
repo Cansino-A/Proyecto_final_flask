@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas de Riot Games - GameTrackr{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <img src="{{ url_for('static', filename='images/backgrounds/image5.jpg') }}" alt="Background Image" id="image-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+    
+    <!-- Aviso si no hay cuenta de Riot vinculada -->
+    {% if not current_user.summoner_name or not current_user.riot_tag %}
+    <div class="alert alert-warning text-center steam-warning" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 1rem;">
+        <strong>¡Atención!</strong> No has vinculado tu cuenta de Riot Games. 
+        <a href="{{ url_for('profile') }}">Vincula tu cuenta de Riot aquí</a>.
+    </div>
+    {% endif %}
+
+    <h2 class="text-center mb-4" style="color: white; font-size: 2.5rem; font-weight: bold;">Estadísticas de League of Legends</h2>
+
+    <!-- Contenedor para las estadísticas generales -->
+    <div id="riot-summoner-stats">
+        <!-- Aquí se mostrarán las estadísticas generales del jugador -->
+    </div>
+
+    <!-- Contenedor para el historial de partidas -->
+    <div id="riot-summoner-info">
+        <!-- Aquí se mostrará el historial de partidas -->
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/stats_riot.js') }}"></script>
+{% endblock %} 

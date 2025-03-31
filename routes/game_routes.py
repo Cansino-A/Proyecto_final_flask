@@ -91,3 +91,21 @@ def dashboard_steam():
 @login_required
 def dashboard_riot():
     return render_template("dashboard_riot.html")
+
+@login_required
+def stats_riot():
+    """Muestra las estadísticas de Riot Games del usuario actual."""
+    return render_template("stats_riot.html")
+
+@login_required
+def stats_steam():
+    """Muestra las estadísticas detalladas de Steam del usuario actual."""
+    if not current_user.steam_id:
+        return render_template("stats_steam.html")
+    
+    steam_name = fetch_steam_username(current_user.steam_id, current_app.config['STEAM_API_KEY'])
+    total_achievements = Achievement.query.filter_by(user_id=current_user.id, achieved=True).count()
+    
+    return render_template("stats_steam.html", 
+                         steam_name=steam_name,
+                         total_achievements=total_achievements)

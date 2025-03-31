@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas de Steam - GameTrackr{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <img src="{{ url_for('static', filename='images/backgrounds/image4.jpg') }}" alt="Background Image" id="image-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1;">
+    
+    <!-- Aviso si no hay Steam ID vinculado -->
+    {% if not current_user.steam_id %}
+    <div class="alert alert-warning text-center steam-warning" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 1rem;">
+        <strong>¡Atención!</strong> No has vinculado tu cuenta de Steam. 
+        <a href="{{ url_for('profile') }}">Vincula tu Steam ID aquí</a>.
+    </div>
+    {% endif %}
+
+    <!-- Encabezado con animación -->
+    <div class="text-center mb-5 animate__animated animate__fadeIn">
+        <h2 class="display-4 fw-bold text-white mb-3" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            Estadísticas de Steam
+        </h2>
+        <div id="user-name" class="h4 text-white-50" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+            <!-- El nombre del usuario se insertará aquí -->
+        </div>
+    </div>
+
+    <!-- Contenedor para las estadísticas generales -->
+    <div id="steam-summoner-stats" class="animate__animated animate__fadeIn">
+        <!-- Aquí se mostrarán las estadísticas generales del jugador -->
+    </div>
+
+    <!-- Contenedor para las gráficas -->
+    <div class="row mt-4">
+        <!-- Gráfica de tiempo jugado por género -->
+        <div class="col-md-6 mb-4 animate__animated animate__fadeIn">
+            <div class="card shadow hover-card">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Tiempo jugado por género
+                    </h5>
+                    <canvas id="timeByGenreChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica de logros desbloqueados -->
+        <div class="col-md-6 mb-4 animate__animated animate__fadeIn">
+            <div class="card shadow hover-card">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="fas fa-medal me-2"></i>
+                        Logros desbloqueados
+                    </h5>
+                    <canvas id="achievementsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica de juegos más jugados -->
+        <div class="col-md-12 mb-4 animate__animated animate__fadeIn">
+            <div class="card shadow hover-card">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="fas fa-trophy me-2"></i>
+                        Juegos más jugados
+                    </h5>
+                    <canvas id="mostPlayedGamesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Incluir Chart.js y Animate.css -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/stats_steam.js') }}"></script>
+
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .card-title {
+        color: white;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .animate__animated {
+        animation-duration: 0.8s;
+    }
+
+    .stat-item {
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+</style>
+{% endblock %} 

@@ -169,3 +169,109 @@ def summoner_info():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@login_required
+def user_stats():
+    """Obtiene las estadísticas detalladas del usuario de Steam."""
+    if not current_user.steam_id:
+        return jsonify({"error": "No hay cuenta de Steam vinculada"}), 404
+
+    try:
+        # Obtener todos los juegos del usuario
+        games = Game.query.filter_by(user_id=current_user.id, platform='Steam').all()
+        
+        # Calcular estadísticas generales
+        total_games = len(games)
+        total_playtime = sum(game.playtime for game in games)
+        
+        # Calcular logros totales (corregido para todos los juegos)
+        total_achievements = Achievement.query.filter_by(user_id=current_user.id, achieved=True).count()
+        total_possible_achievements = Achievement.query.filter_by(user_id=current_user.id).count()
+        
+        # Obtener juegos más jugados (top 5)
+        most_played_games = sorted(games, key=lambda x: x.playtime, reverse=True)[:5]
+        
+        # Agrupar juegos por género (simulado)
+        genres = {
+            "Acción": 0,
+            "Aventura": 0,
+            "RPG": 0,
+            "Estrategia": 0,
+            "Deportes": 0,
+            "Otros": 0
+        }
+        
+        # Simular distribución de géneros
+        for game in games:
+            if game.playtime > 0:
+                genres["Acción"] += game.playtime * 0.3
+                genres["Aventura"] += game.playtime * 0.2
+                genres["RPG"] += game.playtime * 0.2
+                genres["Estrategia"] += game.playtime * 0.15
+                genres["Deportes"] += game.playtime * 0.1
+                genres["Otros"] += game.playtime * 0.05
+        
+        # Obtener actividad reciente (últimos 7 días)
+        recent_activity = []
+        for game in games:
+            # Usar la fecha de última vez jugado como timestamp
+            timestamp = int(game.last_played.timestamp()) if game.last_played else 0
+            recent_activity.append({
+                "timestamp": timestamp,
+                "playtime": game.playtime
+            })
+        
+        # Ordenar actividad por fecha
+        recent_activity.sort(key=lambda x: x["timestamp"], reverse=True)
+        
+        # Preparar lista de juegos recientes
+        recent_games = []
+        for game in games:
+            # Obtener logros específicos para este juego
+            game_achievements = Achievement.query.filter_by(game_id=game.id).all()
+            achieved_count = sum(1 for a in game_achievements if a.achieved)
+            total_game_achievements = len(game_achievements)
+            
+            # Calcular fecha de última vez jugado
+            last_played = None
+            if game.last_played:
+                last_played = int(game.last_played.timestamp())
+            
+            recent_games.append({
+                "name": game.name,
+                "header_image": game.image,
+                "playtime": game.playtime,
+                "last_played": last_played,
+                "achievements": achieved_count,
+                "total_achievements": total_game_achievements
+            })
+        
+        # Ordenar juegos recientes por última vez jugado
+        recent_games.sort(key=lambda x: x["last_played"] or 0, reverse=True)
+        
+        return jsonify({
+            "totalGames": total_games,
+            "totalPlaytime": total_playtime,
+            "totalAchievements": total_achievements,
+            "totalPossibleAchievements": total_possible_achievements,
+            "mostPlayedGames": [
+                {
+                    "name": game.name,
+                    "playtime": game.playtime
+                } for game in most_played_games
+            ],
+            "timeByGenre": [
+                {
+                    "name": genre,
+                    "playtime": playtime
+                } for genre, playtime in genres.items()
+            ],
+            "completedGames": len([game for game in games if game.playtime > 0]),
+            "favoriteGenres": ["Acción", "Aventura", "RPG"],  # Simulado
+            "lastPlayedGame": most_played_games[0].name if most_played_games else "Ninguno",
+            "personaState": "En línea",  # Simulado
+            "username": current_user.steam_name if hasattr(current_user, 'steam_name') else "Usuario de Steam"  # Usar el nombre de Steam
+        })
+    except Exception as e:
+        print(f"Error en user_stats: {str(e)}")  # Añadir log para depuración
+        return jsonify({"error": str(e)}), 500

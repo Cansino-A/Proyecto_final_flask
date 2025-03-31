@@ -58,7 +58,7 @@
                                 <span class="text-white fs-5" id="steamIdDisplay">{{ current_user.steam_id if current_user.steam_id else "No vinculado" }}</span>
                             </p>
                             <p class="mb-0"><strong>Nombre de Steam:</strong> 
-                                <span class="text-white fs-5" id="steamNameDisplay">{{ steam_name if steam_name else "No disponible" }}</span>
+                                <span class="text-white fs-5" id="steamNameDisplay">{{ current_user.steam_name if current_user.steam_name else "No vinculado" }}</span>
                             </p>
                             <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#editSteamIdModal">
                                 <i class="fas fa-edit me-2"></i>Cambiar ID de Steam
@@ -149,7 +149,13 @@
                 <form id="editSteamIdForm">
                     <div class="mb-3">
                         <label for="steamIdInput" class="form-label">Nuevo ID de Steam:</label>
-                        <input type="text" class="form-control" id="steamIdInput" value="{{ current_user.steam_id if current_user.steam_id else '' }}">
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control" id="steamIdInput" value="{{ current_user.steam_id if current_user.steam_id else '' }}">
+                            <span class="ms-2" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-html="true" 
+                                title="STEAM_ID<br>1-Abre tu perfil de Steam en un navegador.<br>2-Mira la URL en la barra de direcciones.<br>3-El número largo al final de la URL es tu Steam ID.">
+                                <i class="fas fa-question-circle"></i>
+                            </span>                         
+                        </div>
                     </div>
                 </form>
             </div>

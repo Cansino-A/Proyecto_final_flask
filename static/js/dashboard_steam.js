@@ -18,9 +18,13 @@ document.addEventListener("DOMContentLoaded", function() {
     let currentPage = 1;  // Página actual
     let totalPages = 1;   // Total de páginas
     let isDownloading = false;  // Estado de la descarga
-    let currentSortDirection = "asc";  // Dirección de ordenación actual
+    let currentSortDirection = "desc";  // Dirección de ordenación actual (descendente por defecto)
     let downloadCheckInterval = null; // Variable para almacenar el intervalo
     
+    // Establecer el valor por defecto del selector de ordenación
+    if (sortBy) {
+        sortBy.value = "playtime";
+    }
 
     // Función para actualizar el número de logros obtenidos
      // Función para cargar juegos con filtros
@@ -46,69 +50,48 @@ document.addEventListener("DOMContentLoaded", function() {
                             <h2 class="accordion-header" id="heading${game.id}">
                                 <button class="accordion-button collapsed d-flex justify-content-between align-items-center w-100" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${game.id}" aria-expanded="false" aria-controls="collapse${game.id}">
                                     <div class="d-flex align-items-center">
-                                        <img src="${game.image}" width="100" class="me-3 rounded">
+                                        <img src="${game.image}" width="100" class="me-3 rounded game-image">
                                         <div class="d-flex flex-column">
-                                            <strong class="text-truncate">${game.name}</strong>
+                                            <strong class="text-truncate game-title">${game.name}</strong>
                                             <span class="text-muted">${game.playtime} horas jugadas</span>
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-column align-items-center" style="position: absolute; left: 50%; transform: translateX(-50%);">
-                                        <span class="badge bg-primary rounded-pill">
-                                            ${game.achieved_achievements.length}/${game.achieved_achievements.length + game.pending_achievements.length}
-                                        </span>
-                                        <small class="text-muted">Logros</small>
-                                    </div>
+                                    <span class="badge bg-primary rounded-pill achievements-badge">
+                                        ${(game.achieved_achievements.length > 0 || game.pending_achievements.length > 0) ? 
+                                            `${game.achieved_achievements.length}/${game.achieved_achievements.length + game.pending_achievements.length} logros` : 
+                                            'Sin logros'}
+                                    </span>
                                 </button>
                             </h2>
                             <div id="collapse${game.id}" class="accordion-collapse collapse" aria-labelledby="heading${game.id}" data-bs-parent="#games-container">
                                 <div class="accordion-body">
-                                    <div class="accordion mb-3" id="achievedAccordion${game.id}">
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header" id="achievedHeading${game.id}">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#achievedCollapse${game.id}" aria-expanded="false" aria-controls="achievedCollapse${game.id}">
-                                                    <i class="fas fa-trophy me-2"></i>Logros Obtenidos (${game.achieved_achievements.length})
-                                                </button>
-                                            </h2>
-                                            <div id="achievedCollapse${game.id}" class="accordion-collapse collapse" aria-labelledby="achievedHeading${game.id}" data-bs-parent="#achievedAccordion${game.id}">
-                                                <div class="accordion-body">
-                                                    <ul class="list-group">
-                                                        ${game.achieved_achievements.length > 0 ?
-                                                            game.achieved_achievements.map(a => `
-                                                                <li class="list-group-item">
-                                                                    <span class="badge bg-success me-2">✔</span>
-                                                                    <strong>${a.name}</strong> - ${a.description}
-                                                                    <span class="text-muted ms-2">(Desbloqueado: ${a.unlock_time})</span>
-                                                                </li>
-                                                            `).join("") :
-                                                            `<li class="list-group-item text-muted">No has desbloqueado logros en este juego.</li>`
-                                                        }
-                                                    </ul>
-                                                </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5 class="mb-3">Logros obtenidos</h5>
+                                            <div class="achievements-list obtained-achievements">
+                                                ${game.achieved_achievements.length > 0 ? 
+                                                    game.achieved_achievements.map(achievement => `
+                                                        <div class="achievement-item">
+                                                            <i class="fas fa-trophy text-warning"></i>
+                                                            <span>${achievement.name}</span>
+                                                        </div>
+                                                    `).join('') :
+                                                    '<div class="achievement-item">No hay logros obtenidos</div>'
+                                                }
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div class="accordion" id="pendingAccordion${game.id}">
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header" id="pendingHeading${game.id}">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pendingCollapse${game.id}" aria-expanded="false" aria-controls="pendingCollapse${game.id}">
-                                                    <i class="fas fa-lock me-2"></i>Logros Pendientes (${game.pending_achievements.length})
-                                                </button>
-                                            </h2>
-                                            <div id="pendingCollapse${game.id}" class="accordion-collapse collapse" aria-labelledby="pendingHeading${game.id}" data-bs-parent="#pendingAccordion${game.id}">
-                                                <div class="accordion-body">
-                                                    <ul class="list-group">
-                                                        ${game.pending_achievements.length > 0 ?
-                                                            game.pending_achievements.map(a => `
-                                                                <li class="list-group-item">
-                                                                    <span class="badge bg-secondary me-2">🔒</span>
-                                                                    <strong>${a.name}</strong> - ${a.description}
-                                                                </li>
-                                                            `).join("") :
-                                                            `<li class="list-group-item text-muted">¡Felicidades! Has desbloqueado todos los logros.</li>`
-                                                        }
-                                                    </ul>
-                                                </div>
+                                        <div class="col-md-6">
+                                            <h5 class="mb-3">Logros pendientes</h5>
+                                            <div class="achievements-list pending-achievements">
+                                                ${game.pending_achievements.length > 0 ?
+                                                    game.pending_achievements.map(achievement => `
+                                                        <div class="achievement-item">
+                                                            <i class="fas fa-lock text-secondary"></i>
+                                                            <span>${achievement.name}</span>
+                                                        </div>
+                                                    `).join('') :
+                                                    '<div class="achievement-item">No hay logros pendientes</div>'
+                                                }
                                             </div>
                                         </div>
                                     </div>
@@ -117,6 +100,55 @@ document.addEventListener("DOMContentLoaded", function() {
                         </div>
                     `;
                     gamesContainer.innerHTML += gameHtml;
+                });
+
+                // Añadir efectos hover a las tarjetas de juegos
+                const gameCards = document.querySelectorAll(".game-card");
+                gameCards.forEach(card => {
+                    card.addEventListener("mouseenter", () => {
+                        card.style.transform = "scale(1.02)";
+                        card.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+                    });
+                    card.addEventListener("mouseleave", () => {
+                        card.style.transform = "scale(1)";
+                        card.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+                    });
+                });
+
+                // Añadir efectos hover a las imágenes de juegos
+                const gameImages = document.querySelectorAll(".game-image");
+                gameImages.forEach(img => {
+                    img.addEventListener("mouseenter", () => {
+                        img.style.transform = "scale(1.1)";
+                        img.style.transition = "transform 0.3s ease";
+                    });
+                    img.addEventListener("mouseleave", () => {
+                        img.style.transform = "scale(1)";
+                    });
+                });
+
+                // Añadir efectos hover a los títulos de juegos
+                const gameTitles = document.querySelectorAll(".game-title");
+                gameTitles.forEach(title => {
+                    title.addEventListener("mouseenter", () => {
+                        title.style.color = "#007bff";
+                        title.style.transition = "color 0.3s ease";
+                    });
+                    title.addEventListener("mouseleave", () => {
+                        title.style.color = "inherit";
+                    });
+                });
+
+                // Añadir efectos hover a los logros
+                const achievementItems = document.querySelectorAll(".achievement-item");
+                achievementItems.forEach(item => {
+                    item.addEventListener("mouseenter", () => {
+                        item.style.transform = "translateX(5px)";
+                        item.style.transition = "transform 0.3s ease";
+                    });
+                    item.addEventListener("mouseleave", () => {
+                        item.style.transform = "translateX(0)";
+                    });
                 });
             } else {
                 gamesContainer.innerHTML = `
@@ -188,18 +220,21 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Función para verificar el estado de descarga
     function checkDownloadStatus() {
+        const progressBarContainer = document.getElementById("progress-bar-container");
+        if (!progressBarContainer) return; // Si no existe el contenedor, no hacer nada
+
         fetch("/api/check_download_status")
             .then(response => response.json())
             .then(data => {
                 if (!data.download_complete) {
                     // Mostrar la barra de progreso
-                    document.getElementById("progress-bar-container").style.display = "block";
+                    progressBarContainer.style.display = "block";
                     progressBar.style.width = `${data.progress}%`;
                     progressBar.textContent = `${data.progress}%`;
                     progressMessage.textContent = `Cargando juegos... (${data.progress}%)`;
                 } else {
                     // Ocultar la barra de progreso cuando la descarga esté completa
-                    document.getElementById("progress-bar-container").style.display = "none";
+                    progressBarContainer.style.display = "none";
                     clearInterval(downloadCheckInterval); // Detener el intervalo
                 }
             })

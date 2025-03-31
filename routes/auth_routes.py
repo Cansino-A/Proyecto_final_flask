@@ -51,7 +51,8 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data):
-            login_user(user)
+            # Iniciar sesión sin recordar por defecto
+            login_user(user, remember=False)
             flash('Inicio de sesión exitoso.', 'success')
             return redirect(url_for('index'))
         flash('Nombre de usuario o contraseña incorrectos.', 'danger')
@@ -99,16 +100,20 @@ def link_steam():
         Achievement.query.filter_by(user_id=current_user.id).delete()
         db.session.commit()
 
-        # Actualizar el Steam ID del usuario y marcar como "descargando"
+        # Actualizar el Steam ID y nombre de Steam del usuario
         current_user.steam_id = steam_id
-        current_user.is_fetching = True  # Marcar que se está descargando
-        current_user.progress = 0  # Reiniciar el progreso
+        current_user.steam_name = steam_name  # Añadir el nombre de Steam
+        current_user.is_fetching = True
+        current_user.progress = 0
         db.session.commit()
 
         # Iniciar la descarga de juegos en segundo plano
         start_background_fetch(current_user.id)
         flash('Steam ID vinculado correctamente. Descargando juegos...', 'success')
-        return jsonify({"success": True})
+        return jsonify({
+            "success": True,
+            "steam_name": steam_name  # Devolver el nombre de Steam
+        })
     else:
         return jsonify({"success": False, "error": "El ID de Steam no puede estar vacío."}), 400
 

@@ -1,194 +1,195 @@
 document.addEventListener("DOMContentLoaded", function() {
-
-    const searchButton = document.getElementById("riot-search-button");
-    const gameNameInput = document.getElementById("riot-gameName");
-    const tagLineInput = document.getElementById("riot-tagLine");
     const statsContainer = document.getElementById("riot-summoner-stats");
     const resultsContainer = document.getElementById("riot-summoner-info");
+    const warningContainer = document.querySelector(".riot-warning");
 
-    if (!searchButton || !gameNameInput || !tagLineInput || !statsContainer || !resultsContainer) {
+    if (!statsContainer || !resultsContainer) {
         console.error("❌ Error: Elementos no encontrados en el DOM.");
         return;
     }
 
-    // Evento de búsqueda
-    searchButton.addEventListener("click", function() {
-        let gameName = gameNameInput.value.trim();
-        let tagLine = tagLineInput.value.trim();
-    
-        if (!gameName || !tagLine) {
-            alert("Por favor, ingresa el nombre y el tag del jugador.");
-            return;
-        }
-    
-        // Mostrar indicadores de carga
-        statsContainer.innerHTML = `
-            <div class="card shadow mb-4">
-                <div class="card-body text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-2">Cargando estadísticas...</p>
+    // Mostrar indicadores de carga
+    statsContainer.innerHTML = `
+        <div class="card shadow mb-4">
+            <div class="card-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
                 </div>
+                <p class="mt-2">Cargando estadísticas...</p>
             </div>
-        `;
+        </div>
+    `;
 
-        resultsContainer.innerHTML = `
-            <div class="card shadow mb-4">
-                <div class="card-body text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-2">Cargando partidas...</p>
+    resultsContainer.innerHTML = `
+        <div class="card shadow mb-4">
+            <div class="card-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
                 </div>
+                <p class="mt-2">Cargando partidas...</p>
             </div>
-        `;
-    
-        fetch(`/api/riot/summoner?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Jugador no encontrado. Verifica el nombre y el tag.");
-                }
-                return response.json();
-            })
-            .then(data => {
-                mostrarEstadisticasGenerales(data.puuid);  // Mostrar estadísticas generales
-                mostrarHistorial(data);  // Mostrar historial de partidas
-            })
-            .catch(error => {
-                console.error("❌ Error al buscar el jugador:", error);
-                resultsContainer.innerHTML = `
+        </div>
+    `;
+
+    // Obtener las estadísticas del usuario
+    fetch('/api/riot/user-stats')
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || "Error al obtener estadísticas");
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error && data.error !== "No tienes una cuenta de Riot vinculada. Por favor, vincula tu cuenta en tu perfil.") {
+                statsContainer.innerHTML = `
                     <div class="alert alert-danger">
-                        ${error.message}
+                        <i class="fas fa-exclamation-circle"></i> Error al cargar las estadísticas: ${data.error}
                     </div>
                 `;
-            });
-    });
+                return;
+            }
 
-    function mostrarEstadisticasGenerales(puuid) {
-        const statsContainer = document.getElementById("riot-summoner-stats");
-        if (!statsContainer) {
-            console.error("❌ No se encontró el contenedor 'riot-summoner-stats'.");
-            return;
-        }
-    
-        fetch(`/api/riot/summoner-info?puuid=${encodeURIComponent(puuid)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al obtener información del invocador.");
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    console.error("Error al obtener información del invocador:", data.error);
-                    return;
-                }
-    
-                // Diccionario para traducir los rangos
-                const tierTranslation = {
-                    "IRON": "Hierro",
-                    "BRONZE": "Bronce",
-                    "SILVER": "Plata",
-                    "GOLD": "Oro",
-                    "PLATINUM": "Platino",
-                    "DIAMOND": "Diamante",
-                    "MASTER": "Maestro",
-                    "GRANDMASTER": "Gran Maestro",
-                    "CHALLENGER": "Retador"
-                };
-    
-                // Calcular estadísticas generales
-                let totalWins = 0;
-                let totalLosses = 0;
-                let globalWinRate = 0;
-                let totalGamesPlayed = 0;
-                let bestRank = "No clasificado";
-                let globalKDA = "0.00";
-    
-                if (Array.isArray(data.rankedInfo)) {
-                    data.rankedInfo.forEach(queue => {
-                        totalWins += queue.wins;
-                        totalLosses += queue.losses;
-                    });
-    
-                    totalGamesPlayed = totalWins + totalLosses;
-                    globalWinRate = totalGamesPlayed > 0 ? ((totalWins / totalGamesPlayed) * 100).toFixed(2) : 0;
-    
-                    // Obtener el mejor rango
-                    bestRank = data.rankedInfo.reduce((best, queue) => {
-                        const tierOrder = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"];
-                        const currentTierIndex = tierOrder.indexOf(queue.tier.toUpperCase());
-                        const bestTierIndex = tierOrder.indexOf(best.tier.toUpperCase());
-                        return currentTierIndex > bestTierIndex ? queue : best;
-                    }, { tier: "IRON", rank: "IV" });
-    
-                    bestRank = `${tierTranslation[bestRank.tier]} ${bestRank.rank}`;
-                }
-    
-                // Formatear la información de clasificación
-                let rankedInfoHTML = "No clasificado";
-                if (Array.isArray(data.rankedInfo)) {
-                    rankedInfoHTML = data.rankedInfo.map(queue => {
-                        const tier = queue.tier.toUpperCase();
-                        const rank = queue.rank;
-                        const translatedTier = tierTranslation[tier] || tier;
-                        const winRate = ((queue.wins / (queue.wins + queue.losses)) * 100).toFixed(2);
-    
-                        // Convertir el rango a un formato compatible con los nombres de tus imágenes
-                        const rankNumber = rank === "I" ? 1 : rank === "II" ? 2 : rank === "III" ? 3 : 4;
-    
-                        // URL del icono de rango (usando las imágenes locales)
-                        const rankIconUrl = `/static/images/ranks/${tier}_${rankNumber}.webp`;
+            if (warningContainer) {
+                warningContainer.style.display = 'none';
+            }
+            mostrarEstadisticasGenerales(data.puuid);
+            mostrarHistorial(data);
+        })
+        .catch(error => {
+            console.error("❌ Error al obtener estadísticas:", error);
+            if (error.message !== "No tienes una cuenta de Riot vinculada. Por favor, vincula tu cuenta en tu perfil.") {
+                statsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Error al cargar las estadísticas: ${error.message}
+                    </div>
+                `;
+            }
+        });
+});
 
-                        return `
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center">
-                                    <img src="${rankIconUrl}" width="50" class="me-3" alt="${translatedTier} ${rank}" onerror="this.onerror=null; this.src='/static/images/ranks/default.webp';">
-                                    <div>
-                                        <strong>${queue.queueType === "RANKED_SOLO_5x5" ? "Solo/Duo" : "Flexible"}:</strong>
-                                        ${translatedTier} ${rank} (${queue.leaguePoints} LP)
-                                        <br>
-                                        <small>${queue.wins} victorias / ${queue.losses} derrotas (${winRate}% de victorias)</small>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join("");
-                }
-    
-                const summonerInfoHTML = `
-                    <div class="card shadow mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Estadísticas Generales</h5>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <p><strong>Clasificación:</strong></p>
-                                    ${rankedInfoHTML}
-                                    <p><strong>Win Rate Global:</strong> ${globalWinRate}%</p>
-                                    <p><strong>Partidas Jugadas:</strong> ${totalGamesPlayed}</p>
-                                    <p><strong>Mejor Rango Alcanzado:</strong> ${bestRank}</p>
+function mostrarEstadisticasGenerales(puuid) {
+    const statsContainer = document.getElementById("riot-summoner-stats");
+    if (!statsContainer) {
+        console.error("❌ No se encontró el contenedor 'riot-summoner-stats'.");
+        return;
+    }
+
+    fetch(`/api/riot/summoner-info?puuid=${encodeURIComponent(puuid)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Error al obtener información del invocador.");
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                console.error("Error al obtener información del invocador:", data.error);
+                return;
+            }
+
+            // Diccionario para traducir los rangos
+            const tierTranslation = {
+                "IRON": "Hierro",
+                "BRONZE": "Bronce",
+                "SILVER": "Plata",
+                "GOLD": "Oro",
+                "PLATINUM": "Platino",
+                "DIAMOND": "Diamante",
+                "MASTER": "Maestro",
+                "GRANDMASTER": "Gran Maestro",
+                "CHALLENGER": "Retador"
+            };
+
+            // Calcular estadísticas generales
+            let totalWins = 0;
+            let totalLosses = 0;
+            let globalWinRate = 0;
+            let totalGamesPlayed = 0;
+            let bestRank = "No clasificado";
+
+            if (Array.isArray(data.rankedInfo)) {
+                data.rankedInfo.forEach(queue => {
+                    totalWins += queue.wins;
+                    totalLosses += queue.losses;
+                });
+
+                totalGamesPlayed = totalWins + totalLosses;
+                globalWinRate = totalGamesPlayed > 0 ? ((totalWins / totalGamesPlayed) * 100).toFixed(2) : 0;
+
+                // Obtener el mejor rango
+                bestRank = data.rankedInfo.reduce((best, queue) => {
+                    const tierOrder = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"];
+                    const currentTierIndex = tierOrder.indexOf(queue.tier.toUpperCase());
+                    const bestTierIndex = tierOrder.indexOf(best.tier.toUpperCase());
+                    return currentTierIndex > bestTierIndex ? queue : best;
+                }, { tier: "IRON", rank: "IV" });
+
+                bestRank = `${tierTranslation[bestRank.tier]} ${bestRank.rank}`;
+            }
+
+            // Formatear la información de clasificación
+            let rankedInfoHTML = "No clasificado";
+            if (Array.isArray(data.rankedInfo)) {
+                rankedInfoHTML = data.rankedInfo.map(queue => {
+                    const tier = queue.tier.toUpperCase();
+                    const rank = queue.rank;
+                    const translatedTier = tierTranslation[tier] || tier;
+                    const winRate = ((queue.wins / (queue.wins + queue.losses)) * 100).toFixed(2);
+
+                    // Convertir el rango a un formato compatible con los nombres de tus imágenes
+                    const rankNumber = rank === "I" ? 1 : rank === "II" ? 2 : rank === "III" ? 3 : 4;
+
+                    // URL del icono de rango (usando las imágenes locales)
+                    const rankIconUrl = `/static/images/ranks/${tier}_${rankNumber}.webp`;
+
+                    return `
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="${rankIconUrl}" width="50" class="me-3" alt="${translatedTier} ${rank}" onerror="this.onerror=null; this.src='/static/images/ranks/default.webp';">
+                                <div>
+                                    <strong>${queue.queueType === "RANKED_SOLO_5x5" ? "Solo/Duo" : "Flexible"}:</strong>
+                                    ${translatedTier} ${rank} (${queue.leaguePoints} LP)
+                                    <br>
+                                    <small>${queue.wins} victorias / ${queue.losses} derrotas (${winRate}% de victorias)</small>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
-    
-                // Insertar el HTML en el contenedor de estadísticas
-                statsContainer.innerHTML = summonerInfoHTML;
-            })
-            .catch(error => {
-                console.error("❌ Error al obtener estadísticas generales:", error);
-                statsContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${error.message}
-                    </div>
-                `;
-            });
-    }
+                    `;
+                }).join("");
+            }
 
+            const summonerInfoHTML = `
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Estadísticas Generales</h5>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <p><strong>Clasificación:</strong></p>
+                                ${rankedInfoHTML}
+                                <p><strong>Win Rate Global:</strong> ${globalWinRate}%</p>
+                                <p><strong>Partidas Jugadas:</strong> ${totalGamesPlayed}</p>
+                                <p><strong>Mejor Rango Alcanzado:</strong> ${bestRank}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-// Función para mostrar el historial de partidas
+            // Insertar el HTML en el contenedor de estadísticas
+            statsContainer.innerHTML = summonerInfoHTML;
+        })
+        .catch(error => {
+            console.error("❌ Error al obtener estadísticas generales:", error);
+            statsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    ${error.message}
+                </div>
+            `;
+        });
+}
+
 function mostrarHistorial(data) {
     const resultsContainer = document.getElementById("riot-summoner-info");
     if (!resultsContainer) {
@@ -309,7 +310,6 @@ function mostrarHistorial(data) {
     });
 }
 
-
 // Variable global para el modal
 let matchModal = null;
     
@@ -317,7 +317,7 @@ let matchModal = null;
 window.verDetalles = function(matchId, puuid) {
     // Eliminar el modal anterior si existe
     if (matchModal) {
-        matchModal.dispose();  // Cerrar y eliminar el modal anterior
+        matchModal.dispose();
     }
 
     fetch(`/api/riot/match/${matchId}?puuid=${encodeURIComponent(puuid)}`)
@@ -392,5 +392,4 @@ window.verDetalles = function(matchId, puuid) {
         .catch(error => {
             console.error("❌ Error al obtener detalles de la partida:", error);
         });
-    };
-});
+}; 

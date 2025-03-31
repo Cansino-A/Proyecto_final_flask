@@ -1,5 +1,3 @@
-
-
 document.addEventListener("DOMContentLoaded", function() {
     // Función flash para mostrar notificaciones por encima de los modales
     function flash(message, type) {
@@ -84,24 +82,17 @@ document.addEventListener("DOMContentLoaded", function() {
                     // Cerrar el modal
                     bootstrap.Modal.getInstance(document.getElementById('editSteamIdModal')).hide();
 
-                    // Actualizar el Steam ID en el perfil sin recargar la página
+                    // Actualizar el Steam ID y nombre en el perfil sin recargar la página
                     const steamIdDisplay = document.getElementById("steamIdDisplay");
+                    const steamNameDisplay = document.getElementById("steamNameDisplay");
+                    
                     if (steamIdDisplay) {
                         steamIdDisplay.textContent = newSteamId;
                     }
-
-                    // Obtener el nombre de Steam y actualizarlo
-                    fetch(`/api/get_steam_name?steam_id=${newSteamId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const steamNameDisplay = document.getElementById("steamNameDisplay");
-                            if (steamNameDisplay && data.steam_name) {
-                                steamNameDisplay.textContent = data.steam_name;
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error obteniendo el nombre de Steam:", error);
-                        });
+                    
+                    if (steamNameDisplay && data.steam_name) {
+                        steamNameDisplay.textContent = data.steam_name;
+                    }
 
                     // Mostrar la barra de carga y continuar con la descarga...
                     const progressBarContainer = document.getElementById("progress-bar-container");
@@ -166,7 +157,14 @@ document.addEventListener("DOMContentLoaded", function() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ summoner_name: newSummonerName, riot_tag: newRiotTag })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Error al actualizar la información de Riot');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Recargar la página para mostrar los cambios
@@ -177,7 +175,7 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .catch(error => {
                 console.error("Error:", error);
-                alert("Error al actualizar la información de Riot.");
+                alert("Error al actualizar la información de Riot: " + error.message);
             });
         });
     }
